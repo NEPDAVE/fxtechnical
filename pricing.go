@@ -12,7 +12,8 @@ func bidAsk(instrument string) (string, string) {
 }
 
 func main() {
-	blah, b := bidAsk("EUR_USD")
-	fmt.Println(blah)
-	fmt.Println(b)
+	//blah, b := bidAsk("EUR_USD")
+	//fmt.Println(blah)
+	fmt.Println("start")
+  oanda.GetCandles("EUR_USD", "10", "D")
 }
