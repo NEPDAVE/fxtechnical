@@ -44,13 +44,11 @@ func main() {
 	count := os.Args
 	candles := Candles("EUR_USD", count[1], "D")
 	bid, _ := BidAsk("EUR_USD")
-	fmt.Println("BBBBBBIIIIIIDDDDD:")
-	fmt.Println(bid)
 	closeAverage := CloseAverage(candles, count[1])
 	fmt.Println("**********")
 	fmt.Println("AVERAGE:")
 	fmt.Printf("%6.6f\n", closeAverage)
-	//fmt.Println(closeAverage.Candles[0])
-	fmt.Println(candles.Candles[0])
+	fmt.Println("BID:")
+	fmt.Println(bid)
 	fmt.Println("**********")
 }
