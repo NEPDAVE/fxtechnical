@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"github.com/nepdave/oanda"
-	//"log"
+	"log"
 	"os"
-	//"strconv"
+	"strconv"
 )
 
 func BidAsk(instrument string) (string, string) {
@@ -19,7 +19,7 @@ func Candles(instrument string, count string, granularity string) *oanda.Candles
 		granularity))
 }
 
-/*
+
 //FIXME this should have a unit test!
 func CloseAverage(candles *oanda.Candles, count string) float64 {
 	sum := 0.0
@@ -29,23 +29,16 @@ func CloseAverage(candles *oanda.Candles, count string) float64 {
 	}
 
 	for _, v := range candles.Candles {
-		//FIXME doing a type assertion here. this is new to me...
-		if str, ok := v.Mid["c"].(string); ok {
-			// act on str
-			f, err := strconv.ParseFloat(str, 64)
-			//FIXME need to work on error handling
-			if err != nil {
-				log.Fatal(err)
-			}
-			sum = sum + f
-		} else {
-			// not string
-			log.Fatal("CloseAverage type assertion error")
+
+		f, err := strconv.ParseFloat(v.Mid.Close, 64)
+		if err != nil {
+			log.Fatal(err)
 		}
+		sum = sum + f
+
 	}
 	return sum / float64(i)
 }
-*/
 
 func main() {
 	count := os.Args
@@ -53,10 +46,10 @@ func main() {
 	bid, _ := BidAsk("EUR_USD")
 	fmt.Println("BBBBBBIIIIIIDDDDD:")
 	fmt.Println(bid)
-	//closeAverage := CloseAverage(candles, count[1])
-	//fmt.Println("**********")
-	//fmt.Println("AVERAGE:")
-	//fmt.Printf("%6.6f\n", closeAverage)
+	closeAverage := CloseAverage(candles, count[1])
+	fmt.Println("**********")
+	fmt.Println("AVERAGE:")
+	fmt.Printf("%6.6f\n", closeAverage)
 	//fmt.Println(closeAverage.Candles[0])
 	fmt.Println(candles.Candles[0])
 	fmt.Println("**********")
