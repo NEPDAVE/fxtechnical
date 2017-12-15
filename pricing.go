@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/nepdave/oanda"
 	"log"
 	"os"
 	"strconv"
+	oanda "github.com/nepdave/oanda"
 )
 
 //FIXME you can add a second function that can mostly using the existing
@@ -23,16 +23,14 @@ import (
 
 
 //We need a list of all the instruments to reference them later...
-func BidAskMultiple(intruments ...string) map[string]string {
-	pricing := oanda.Pricing{}.UnmarshalPricing(oanda.GetMultiplePricing(instruments))
+func BidAskMultiple(instruments ...string) map[string]string {
+	pricing := oanda.Pricing{}.UnmarshalPricing(oanda.GetPricing(instruments...))
 
-  instrumentsMap := map[string]string
+	var instrumentsMap map[string]string
 
-	for i, v range := pricing {
-		instrumentsMap[]
+	for i, _ := range pricing.Prices {
 		instrument := pricing.Prices[i].Instrument
 		price := pricing.Prices[i].Asks[0].Price
-		//FIXME double check this is right way to add k/v for go
 		instrumentsMap[instrument] = price
 	}
 
