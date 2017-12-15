@@ -1,54 +1,35 @@
-package main
+package fxtechnical
 
 import (
 	"fmt"
 	"log"
-	"os"
 	"strconv"
 	oanda "github.com/nepdave/oanda"
 )
 
-//FIXME you can add a second function that can mostly using the existing
-//oanda endpoint function and a second bidask(multiple) or maybe you could one
-//becasue your getting back a list of prices and we do not want to assume the
-//prices are going to be in order, we will want to loop through the struct to pull
-//out the prices, then we can use them for things like the index page or doing
-//statistical arbitrage, so that's cool...
-
-//TODO write a BidAsk multiple function and a GetPricing function that can
-//handle the variadic input
-
-//TODO figure out if you need to do anykind of analysis for the multiple prices
-//that are returned.... that is annoying
-
-
-//We need a list of all the instruments to reference them later...
+//FIXME need to look into what the "real" price is, currently just taking
+//the first one a face value and using it
 func BidAskMultiple(instruments ...string) map[string]string {
 	pricing := oanda.Pricing{}.UnmarshalPricing(oanda.GetPricing(instruments...))
-
-	var instrumentsMap map[string]string
+	instrumentsMap := make(map[string]string)
 
 	for i, _ := range pricing.Prices {
 		instrument := pricing.Prices[i].Instrument
 		price := pricing.Prices[i].Asks[0].Price
 		instrumentsMap[instrument] = price
 	}
-
 	return instrumentsMap
-
 }
 
 func BidAsk(instrument string) (string, string) {
 	pricing := oanda.Pricing{}.UnmarshalPricing(oanda.GetPricing(instrument))
-
-	return pricing.Prices[0].Bids[0].Price, pricing.Prices[0].Asks[0].Price
+  return pricing.Prices[0].Bids[0].Price, pricing.Prices[0].Asks[0].Price
 }
 
 func Candles(instrument string, count string, granularity string) *oanda.Candles {
 	return oanda.Candles{}.UnmarshalCandles(oanda.GetCandles(instrument, count,
-		granularity))
+		                                      granularity))
 }
-
 
 //FIXME this should have a unit test!
 func CloseAverage(candles *oanda.Candles, count string) float64 {
@@ -70,7 +51,7 @@ func CloseAverage(candles *oanda.Candles, count string) float64 {
 	return sum / float64(i)
 }
 
-func trend(instrument string, count string, granularity string) string {
+func Trend(instrument string, count string, granularity string) string {
 	candles := Candles(instrument, count, "D")
 	closeAverage := CloseAverage(candles, count)
 	bid, _ := BidAsk(instrument)
@@ -82,16 +63,18 @@ func trend(instrument string, count string, granularity string) string {
 
 	if fBid > closeAverage {
 		return "up"
-	}else if fBid < closeAverage {
+	} else if fBid < closeAverage {
 		return "down"
-	}else if fBid == closeAverage {
+	} else if fBid == closeAverage {
 		return "equal"
-	}else {
+	} else {
 		return "wtf"
 	}
 
 }
 
+//FIXME some of the formatting code in here and shit should be looked at again
+/*
 func main() {
 	count := os.Args
 	candles := Candles("EUR_USD", count[1], "D")
@@ -111,3 +94,4 @@ func main() {
   fmt.Println(way)
 	fmt.Println("**********")
 }
+*/
