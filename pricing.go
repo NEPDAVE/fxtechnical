@@ -1,7 +1,6 @@
 package fxtechnical
 
 import (
-	"fmt"
 	"log"
 	"strconv"
 	oanda "github.com/nepdave/oanda"
