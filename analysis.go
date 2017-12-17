@@ -1,52 +1,10 @@
 package fxtechnical
 
 import (
-	//"log"
-	//"strconv"
 	oanda "github.com/nepdave/oanda"
+	"log"
+	"strconv"
 )
-
-func BidAsk(instrument string) (string, string) {
-	pricingByte, err := oanda.GetPricing(instruments)
-
-	if err != nil {
-		for _, v := range instruments {
-			return "prices unavailable", "prices unavailable"
-		}
-		return instrumentsMap
-	}
-	pricing := oanda.Pricing{}.UnmarshalPricing(pricingByte)
-	return pricing.Prices[0].Bids[0].Price, pricing.Prices[0].Asks[0].Price
-}
-
-//FIXME need to look into what the "real" price is, currently just taking
-//the first one at face value and using it
-func BidAskMultiple(instruments ...string) map[string]string {
-	instrumentsMap := make(map[string]string)
-	pricingByte, err := oanda.GetPricing(instruments...)
-
-	if err != nil {
-		for _, v := range instruments {
-			instrumentsMap[v] = "prices unavailable"
-		}
-		return instrumentsMap
-	}
-
-	pricing := oanda.Pricing{}.UnmarshalPricing(pricingByte)
-
-	for i, _ := range pricing.Prices {
-		instrument := pricing.Prices[i].Instrument
-		price := pricing.Prices[i].Asks[0].Price
-		instrumentsMap[instrument] = price
-	}
-	return instrumentsMap
-}
-
-/*
-func Candles(instrument string, count string, granularity string) *oanda.Candles {
-	return oanda.Candles{}.UnmarshalCandles(oanda.GetCandles(instrument, count,
-		granularity))
-}
 
 //FIXME this should have a unit test!
 func CloseAverage(candles *oanda.Candles, count string) float64 {
@@ -67,8 +25,7 @@ func CloseAverage(candles *oanda.Candles, count string) float64 {
 	}
 	return sum / float64(i)
 }
-*/
-/*
+
 func Trend(instrument string, count string, granularity string) string {
 	candles := Candles(instrument, count, "D")
 	closeAverage := CloseAverage(candles, count)
@@ -90,9 +47,10 @@ func Trend(instrument string, count string, granularity string) string {
 	}
 
 }
-*/
-//FIXME some of the formatting code in here and shit should be looked at again
+
 /*
+//FIXME some of the formatting code in here and shit should be looked at again
+
 func main() {
 	count := os.Args
 	candles := Candles("EUR_USD", count[1], "D")
