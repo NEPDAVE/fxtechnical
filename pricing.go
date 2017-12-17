@@ -1,17 +1,26 @@
 package fxtechnical
 
 import (
+	oanda "github.com/nepdave/oanda"
 	"log"
 	"strconv"
-	oanda "github.com/nepdave/oanda"
 )
 
 //FIXME need to look into what the "real" price is, currently just taking
 //the first one a face value and using it
 func BidAskMultiple(instruments ...string) map[string]string {
-	pricing := oanda.Pricing{}.UnmarshalPricing(oanda.GetPricing(instruments...))
 	instrumentsMap := make(map[string]string)
+	pricingByte, err := oanda.GetPricing(instruments...)
 
+	if err != nil {
+		for _, v := range instruments {
+			instrumentsMap[v] = "quote unavailable"
+		}
+		return instrumentsMap
+	}
+
+	pricing := oanda.Pricing{}.UnmarshalPricing(pricingByte)
+	//FIXME we need to pass the error all the way up to the caller...
 	for i, _ := range pricing.Prices {
 		instrument := pricing.Prices[i].Instrument
 		price := pricing.Prices[i].Asks[0].Price
@@ -22,12 +31,12 @@ func BidAskMultiple(instruments ...string) map[string]string {
 
 func BidAsk(instrument string) (string, string) {
 	pricing := oanda.Pricing{}.UnmarshalPricing(oanda.GetPricing(instrument))
-  return pricing.Prices[0].Bids[0].Price, pricing.Prices[0].Asks[0].Price
+	return pricing.Prices[0].Bids[0].Price, pricing.Prices[0].Asks[0].Price
 }
 
 func Candles(instrument string, count string, granularity string) *oanda.Candles {
 	return oanda.Candles{}.UnmarshalCandles(oanda.GetCandles(instrument, count,
-		                                      granularity))
+		granularity))
 }
 
 //FIXME this should have a unit test!
