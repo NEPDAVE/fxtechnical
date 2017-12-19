@@ -1,9 +1,9 @@
 package fxtechnical
 
 import (
-	oanda "github.com/nepdave/oanda"
 	"log"
 	"strconv"
+	oanda "github.com/nepdave/oanda"
 )
 
 //FIXME this should have a unit test!
@@ -26,6 +26,7 @@ func CloseAverage(candles *oanda.Candles, count string) float64 {
 	return sum / float64(i)
 }
 
+/*
 func Trend(instrument string, count string, granularity string) string {
 	candles := Candles(instrument, count, "D")
 	closeAverage := CloseAverage(candles, count)
@@ -47,7 +48,7 @@ func Trend(instrument string, count string, granularity string) string {
 	}
 
 }
-
+*/
 /*
 //FIXME some of the formatting code in here and shit should be looked at again
 
