@@ -1,9 +1,9 @@
 package fxtechnical
 
 import (
+	oanda "github.com/nepdave/oanda"
 	"log"
 	"strconv"
-	oanda "github.com/nepdave/oanda"
 )
 
 //FIXME this should have a unit test!
