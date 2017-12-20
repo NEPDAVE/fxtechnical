@@ -1,9 +1,9 @@
 package fxtechnical
 
 import (
-	oanda "github.com/nepdave/oanda"
 	"log"
 	"strconv"
+	oanda "github.com/nepdave/oanda"
 )
 
 //FIXME this should have a unit test!
@@ -24,6 +24,11 @@ func CloseAverage(candles *oanda.Candles, count string) float64 {
 
 	}
 	return sum / float64(i)
+}
+
+//FIXME make sure you know how this works
+func StandardDeviation(average float64, count int) {
+
 }
 
 /*
