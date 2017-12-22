@@ -7,7 +7,7 @@ import (
 )
 
 func BidAsk(instrument string) (string, string) {
-	pricingByte, err := oanda.GetPricing(instruments)
+	pricingByte, err := oanda.GetPricing(instrument)
 
 	if err != nil {
 		//FIXME think this through... if the caller is trying to do a type

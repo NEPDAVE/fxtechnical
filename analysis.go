@@ -1,14 +1,19 @@
 package fxtechnical
 
 import (
-	"log"
-	"strconv"
 	oanda "github.com/nepdave/oanda"
+	"fmt"
+	"log"
+	"math"
+	"strconv"
 )
 
 //FIXME this should have a unit test!
-func CloseAverage(candles *oanda.Candles, count string) float64 {
+//returns the average and all of the values used to calculate the average
+//so we can determine the StandardDeviation
+func CloseAverage(candles *oanda.Candles, count string) (float64, []float64) {
 	sum := 0.0
+	pricesSlice := []float64{}
 	i, err := strconv.Atoi(count)
 	if err != nil {
 		log.Fatal(err)
@@ -20,15 +25,25 @@ func CloseAverage(candles *oanda.Candles, count string) float64 {
 		if err != nil {
 			log.Fatal(err)
 		}
+		pricesSlice = append(pricesSlice, f)
 		sum = sum + f
 
 	}
-	return sum / float64(i)
+	return (sum / float64(i)), pricesSlice
 }
 
 //FIXME make sure you know how this works
-func StandardDeviation(average float64, count int) {
+func StandardDeviation(average float64, pricesSlice []float64) {
+	sd := 0.0
 
+	for _, v := range pricesSlice {
+		// The use of Pow math function func Pow(x, y float64) float64
+		sd += math.Pow(v-average, 2)
+	}
+	// The use of Sqrt math function func Sqrt(x float64) float64
+	sd = math.Sqrt(sd / 10)
+
+	fmt.Println("The Standard Deviation is : ", sd)
 }
 
 /*
