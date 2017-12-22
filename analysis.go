@@ -33,7 +33,7 @@ func CloseAverage(candles *oanda.Candles, count string) (float64, []float64) {
 }
 
 //FIXME make sure you know how this works
-func StandardDeviation(average float64, pricesSlice []float64) {
+func StandardDeviation(average float64, pricesSlice []float64) float64 {
 	sd := 0.0
 	counter := 0.0
 
@@ -43,10 +43,12 @@ func StandardDeviation(average float64, pricesSlice []float64) {
 		counter++
 	}
 	// The use of Sqrt math function func Sqrt(x float64) float64
-	//gotta know if bolliner bands use n or n-1 for this part... 
+	//gotta know if bolliner bands use n or n-1 for this part...
 	sd = math.Sqrt(sd/(counter-1))
 
 	fmt.Println("The Standard Deviation is : ", sd)
+
+	return sd
 }
 
 /*
