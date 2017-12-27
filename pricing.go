@@ -2,10 +2,12 @@ package fxtechnical
 
 import (
 	//"log"
-	//"strconv"
+	"strconv"
 	oanda "github.com/nepdave/oanda"
 )
 
+//FIXME think about having this funct return float64 instead of string so you
+//can immediatly do math with the return values
 func BidAsk(instrument string) (string, string) {
 	pricingByte, err := oanda.GetPricing(instrument)
 
@@ -39,4 +41,10 @@ func BidAskMultiple(instruments ...string) map[string]string {
 		instrumentsMap[instrument] = price
 	}
 	return instrumentsMap
+}
+
+func Spread(bid string, ask string) float64 {
+	bidF, _ := strconv.ParseFloat(bid, 64)
+	askF, _ := strconv.ParseFloat(ask, 64)
+	return askF - bidF
 }
