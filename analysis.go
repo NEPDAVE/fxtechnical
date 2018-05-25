@@ -1,8 +1,8 @@
 package fxtechnical
 
 import (
-	oanda "github.com/nepdave/oanda"
 	"fmt"
+	oanda "github.com/nepdave/oanda"
 	"log"
 	"math"
 	"strconv"
@@ -44,7 +44,7 @@ func StandardDeviation(average float64, pricesSlice []float64) float64 {
 	}
 	// The use of Sqrt math function func Sqrt(x float64) float64
 	//gotta know if bolliner bands use n or n-1 for this part...
-	sd = math.Sqrt(sd/(counter-1))
+	sd = math.Sqrt(sd / (counter - 1))
 
 	fmt.Println("The Standard Deviation is : ", sd)
 

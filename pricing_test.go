@@ -14,7 +14,7 @@ func TestGetPricing(t *testing.T) {
 	t.Log("Given the need to test fxtechnical API wrapper")
 	t.Log("\tWhen checking BidAsk function")
 
-	if bid != "0" && ask != "0"  {
+	if bid != "0" && ask != "0" {
 		t.Fatal("\t\tShould return two non zero strings", ballotX)
 	}
 	t.Log("\t\tShould return two non zero strings", checkMark)
