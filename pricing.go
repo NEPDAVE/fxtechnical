@@ -12,10 +12,12 @@ func StreamBidAsk(instruments string, out chan oanda.StreamResult) {
 		if err := recover(); err != nil {
 			fmt.Println("StreamBidAsk panicked")
 		}
+	}()
 
-	}
 	oandaChan := make(chan oanda.StreamResult)
 	go oanda.StreamPricing("EUR_USD", oandaChan)
+
+	//ranging over values coming into channel
 	for streamResult := range oandaChan {
 		if streamResult.Error != nil {
 			fmt.Println(streamResult.Error)
@@ -24,12 +26,15 @@ func StreamBidAsk(instruments string, out chan oanda.StreamResult) {
 	priceByte := streamResult.PriceByte
 		if len(priceByte) > 100 {
 			prices := oanda.Prices{}.UnmarshalPrices(priceByte)
+			fmt.Println(prices)
 		} else if len(priceByte) < 100 {
 			heartbeat := oanda.Heartbeat{}.UnmarshalHeartbeat(priceByte)
+			fmt.Println(heartbeat)
 		} else {
 			fmt.Println("Neither Price Nor Heartbeat...")
 		}
 	}
+
 }
 
 //FIXME think about having this func return float64 instead of string so you
