@@ -2,27 +2,30 @@ package fxtechnical
 
 import (
 	"fmt"
-	oanda "github.com/nepdave/oanda"
 	"strconv"
+	oanda "github.com/nepdave/oanda"
 )
 
-func StreamBidAsk(instruments string, out chan []byte) {
-	oandaChan := make(chan []byte)
+func StreamBidAsk(instruments string, out chan oanda.StreamResult) {
+	//haha not sure if im doing this right...
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("StreamBidAsk panicked")
+		}
+
+	}
+	oandaChan := make(chan oanda.StreamResult)
 	go oanda.StreamPricing("EUR_USD", oandaChan)
-	for priceByte := range oandaChan {
-		//appears that returned pricesBytes are 266 long and returned heartbeats
-		//are 61 long. checking the length of the byte to determine how to
-		//unmarshal the data
-		if len(priceByte) == 266 {
+	for streamResult := range oandaChan {
+		if streamResult.Error != nil {
+			fmt.Println(streamResult.Error)
+		}
+	//approximating length of returned byte slice. need more precision
+	priceByte := streamResult.PriceByte
+		if len(priceByte) > 100 {
 			prices := oanda.Prices{}.UnmarshalPrices(priceByte)
-			fmt.Println("Bid:")
-			fmt.Println(prices.Bids[0].Price)
-			fmt.Println("Ask:")
-			fmt.Println(prices.Asks[0].Price)
-		} else if len(priceByte) == 61 {
+		} else if len(priceByte) < 100 {
 			heartbeat := oanda.Heartbeat{}.UnmarshalHeartbeat(priceByte)
-			fmt.Println("Heartbeat:")
-			fmt.Println(heartbeat.Time)
 		} else {
 			fmt.Println("Neither Price Nor Heartbeat...")
 		}
