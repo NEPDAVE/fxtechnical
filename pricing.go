@@ -7,7 +7,7 @@ import (
 )
 
 func StreamBidAsk(instruments string, out chan oanda.StreamResult) {
-	//haha not sure if im doing this right...
+	//capturing panic raised by Unmarshaling
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Println("StreamBidAsk panicked")
@@ -40,6 +40,13 @@ func StreamBidAsk(instruments string, out chan oanda.StreamResult) {
 //FIXME think about having this func return float64 instead of string so you
 //can immediatly do math with the return values
 func BidAsk(instrument string) (string, string) {
+	//capturing panic raised by Unmarshaling
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("StreamBidAsk panicked")
+		}
+	}()
+
 	pricingByte, err := oanda.GetPricing(instrument)
 
 	if err != nil {
@@ -55,6 +62,13 @@ func BidAsk(instrument string) (string, string) {
 //FIXME need to look into what the "real" price is, currently just taking
 //the first one at face value and using it
 func BidAskMultiple(instruments ...string) map[string]string {
+	//capturing panic raised by Unmarshaling
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("StreamBidAsk panicked")
+		}
+	}()
+
 	instrumentsMap := make(map[string]string)
 	pricingByte, err := oanda.GetPricing(instruments...)
 
