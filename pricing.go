@@ -7,6 +7,7 @@ import (
 	oanda "github.com/nepdave/oanda"
 )
 
+//contains unmarshaled prices data
 type PricesResult struct {
 	Prices    *oanda.Prices
 	Heartbeat *oanda.Heartbeat
