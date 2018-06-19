@@ -3,8 +3,8 @@ package fxtechnical
 import (
 	"errors"
 	"fmt"
-	oanda "github.com/nepdave/oanda"
 	"strconv"
+	oanda "github.com/nepdave/oanda"
 )
 
 type PricesResult struct {
@@ -13,10 +13,7 @@ type PricesResult struct {
 	Error     error
 }
 
-//new way, creating oanda.Prices channel
-func StreamBidAsk(instruments string, out chan PricesResult) {
-	//old way
-	//func StreamBidAsk(instruments string, out chan oanda.StreamResult) {
+func StreamBidAsk(instrument string, out chan PricesResult) {
 	//capturing panic raised by Unmarshaling
 	defer func() {
 		if err := recover(); err != nil {
@@ -26,14 +23,14 @@ func StreamBidAsk(instruments string, out chan PricesResult) {
 	}()
 
 	streamResultChan := make(chan oanda.StreamResult)
-	go oanda.StreamPricing("EUR_USD", streamResultChan)
+	go oanda.StreamPricing(instrument, streamResultChan)
 
 	//ranging over values coming into channel
 	for streamResult := range streamResultChan {
 		if streamResult.Error != nil {
 			out <- PricesResult{Error: streamResult.Error}
 		}
-		//approximating length of returned byte slice. need more precision
+		//FIXME approximating length of returned byte slice. need more precision
 		priceByte := streamResult.PriceByte
 		if len(priceByte) > 100 {
 			prices := oanda.Prices{}.UnmarshalPrices(priceByte)
