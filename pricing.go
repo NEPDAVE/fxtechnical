@@ -1,40 +1,48 @@
 package fxtechnical
 
 import (
+	"errors"
 	"fmt"
-	"strconv"
 	oanda "github.com/nepdave/oanda"
+	"strconv"
 )
 
-func StreamBidAsk(instruments string, out chan oanda.StreamResult) {
+type PricesResult struct {
+	Prices    *oanda.Prices
+	Heartbeat *oanda.Heartbeat
+	Error     error
+}
+
+//new way, creating oanda.Prices channel
+func StreamBidAsk(instruments string, out chan PricesResult) {
+	//old way
+	//func StreamBidAsk(instruments string, out chan oanda.StreamResult) {
 	//capturing panic raised by Unmarshaling
 	defer func() {
 		if err := recover(); err != nil {
-			fmt.Println("StreamBidAsk panicked")
+			//FIXME not sure if this is correct...
+			out <- PricesResult{Error: errors.New("error unmarshaling json")}
 		}
 	}()
 
-	oandaChan := make(chan oanda.StreamResult)
-	go oanda.StreamPricing("EUR_USD", oandaChan)
+	streamResultChan := make(chan oanda.StreamResult)
+	go oanda.StreamPricing("EUR_USD", streamResultChan)
 
 	//ranging over values coming into channel
-	for streamResult := range oandaChan {
+	for streamResult := range streamResultChan {
 		if streamResult.Error != nil {
-			fmt.Println(streamResult.Error)
+			out <- PricesResult{Error: streamResult.Error}
 		}
-	//approximating length of returned byte slice. need more precision
-	priceByte := streamResult.PriceByte
+		//approximating length of returned byte slice. need more precision
+		priceByte := streamResult.PriceByte
 		if len(priceByte) > 100 {
 			prices := oanda.Prices{}.UnmarshalPrices(priceByte)
-			fmt.Println(prices)
-		} else if len(priceByte) < 100 {
-			heartbeat := oanda.Heartbeat{}.UnmarshalHeartbeat(priceByte)
-			fmt.Println(heartbeat)
+			out <- PricesResult{Prices: prices}
 		} else {
-			fmt.Println("Neither Price Nor Heartbeat...")
+			heartbeat := oanda.Heartbeat{}.UnmarshalHeartbeat(priceByte)
+			out <- PricesResult{Heartbeat: heartbeat}
 		}
 	}
-
 }
 
 //FIXME think about having this func return float64 instead of string so you
