@@ -7,11 +7,31 @@ import (
 	oanda "github.com/nepdave/oanda"
 )
 
-//contains unmarshaled prices data
+//contains unmarshaled prices data and methods to find low/high bid/ask
 type PricesResult struct {
 	Prices    *oanda.Prices
 	Heartbeat *oanda.Heartbeat
 	Error     error
+}
+
+//FIXME need to test this. also need to differentiate if you're looking at bid or ask !!!!
+func (p PricesResult) HighestBid() (float64, float64) {
+	bid := 0
+	liquidity := 0
+	for _, val := range p.Prices["bids"] {
+		if val["price"] > bid {
+			bid = val["price"]
+			liquidity = val["liquidity"]
+		}
+	}
+	return bid, liquidity
+}
+
+//FIXME need to test this
+func (p PricesResult) LowestAsk() (float64, float64) {
+	ask = 0
+	liquidity = 0
+	return bid, liquidity
 }
 
 func StreamBidAsk(instrument string, out chan PricesResult) {
