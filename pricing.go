@@ -3,42 +3,66 @@ package fxtechnical
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	oanda "github.com/nepdave/oanda"
+	"strconv"
 )
 
 //contains unmarshaled prices data and methods to find low/high bid/ask
 type PricesResult struct {
-	Prices    *oanda.Prices
-	Heartbeat *oanda.Heartbeat
-	Error     error
-}
-
-//FIXME need to test this. also need to differentiate if you're looking at bid or ask !!!!
-func (p PricesResult) HighestBid() (float64, float64) {
-	bid := 0
-	liquidity := 0
-	for _, val := range p.Prices["bids"] {
-		if val["price"] > bid {
-			bid = val["price"]
-			liquidity = val["liquidity"]
-		}
-	}
-	return bid, liquidity
+	Prices           *oanda.Prices
+	Heartbeat        *oanda.Heartbeat
+	HighBid          float64
+	HighBidLiquidity int64
+	LowAsk           float64
+	LowAskLiquidity  int64
+	Error            error
 }
 
 //FIXME need to test this
-func (p PricesResult) LowestAsk() (float64, float64) {
-	ask = 0
-	liquidity = 0
-	return bid, liquidity
+func (p *PricesResult) HighestBid() {
+	for _, val := range p.Prices.Bids {
+		check, err := strconv.ParseFloat(val.Price, 64)
+
+		if err != nil {
+			p.Error = err
+		}
+
+		if check > p.HighBid {
+			p.HighBid = check
+			p.HighBidLiquidity = val.Liquidity
+		}
+	}
+}
+
+//FIXME need to test this
+func (p *PricesResult) LowestAsk() {
+	firstAsk, err := strconv.ParseFloat(p.Prices.Asks[0].Price, 64)
+
+	if err != nil {
+		p.Error = err
+	}
+
+	//setting these to ensure p.LowAsk always contains a valid price
+	p.LowAsk = firstAsk
+
+	for _, val := range p.Prices.Asks {
+		check, err := strconv.ParseFloat(val.Price, 64)
+
+		if err != nil {
+			p.Error = err
+		}
+
+		if check < p.LowAsk {
+			p.LowAsk = check
+			p.LowAskLiquidity = val.Liquidity
+		}
+	}
 }
 
 func StreamBidAsk(instrument string, out chan PricesResult) {
 	//capturing panic raised by Unmarshaling
 	defer func() {
 		if err := recover(); err != nil {
-			//FIXME not sure if this is correct...
 			out <- PricesResult{Error: errors.New("error unmarshaling json")}
 		}
 	}()
@@ -51,6 +75,7 @@ func StreamBidAsk(instrument string, out chan PricesResult) {
 		if streamResult.Error != nil {
 			out <- PricesResult{Error: streamResult.Error}
 		}
+
 		//FIXME approximating length of returned byte slice. need more precision
 		priceByte := streamResult.PriceByte
 		if len(priceByte) > 100 {
@@ -63,27 +88,28 @@ func StreamBidAsk(instrument string, out chan PricesResult) {
 	}
 }
 
+//FIXME think about if you need this func to return the lowest ask and highest bid
 //FIXME think about having this func return float64 instead of string so you
 //can immediatly do math with the return values
-func BidAsk(instrument string) (string, string) {
-	//capturing panic raised by Unmarshaling
-	defer func() {
-		if err := recover(); err != nil {
-			fmt.Println("StreamBidAsk panicked")
-		}
-	}()
-
-	pricingByte, err := oanda.GetPricing(instrument)
-
-	if err != nil {
-		//FIXME think this through... if the caller is trying to do a type
-		//conversion then this will err out if you return a word
-		//one possibility...
-		return "0", "0"
-	}
-	pricing := oanda.Pricing{}.UnmarshalPricing(pricingByte)
-	return pricing.Prices[0].Bids[0].Price, pricing.Prices[0].Asks[0].Price
-}
+// func BidAsk(instrument string) (string, string) {
+// 	//capturing panic raised by Unmarshaling
+// 	defer func() {
+// 		if err := recover(); err != nil {
+// 			fmt.Println("StreamBidAsk panicked")
+// 		}
+// 	}()
+//
+// 	pricingByte, err := oanda.GetPricing(instrument)
+//
+// 	if err != nil {
+// 		//FIXME think this through... if the caller is trying to do a type
+// 		//conversion then this will err out if you return a word
+// 		//one possibility...
+// 		return "0", "0"
+// 	}
+// 	pricing := oanda.Pricing{}.UnmarshalPricing(pricingByte)
+// 	return pricing.Prices[0].Bids[0].Price, pricing.Prices[0].Asks[0].Price
+// }
 
 //FIXME need to look into what the "real" price is, currently just taking
 //the first one at face value and using it
