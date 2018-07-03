@@ -7,8 +7,8 @@ import (
 	"strconv"
 )
 
-//contains unmarshaled prices data and methods to find low/high bid/ask
-type PricesResult struct {
+//PricesData contains unmarshaled prices data and methods to find low/high bid/ask
+type PricesData struct {
 	Prices           *oanda.Prices
 	Heartbeat        *oanda.Heartbeat
 	HighBid          float64
@@ -18,8 +18,8 @@ type PricesResult struct {
 	Error            error
 }
 
-//FIXME need to test this
-func (p *PricesResult) HighestBid() {
+//FIXME HighestBid need to test this
+func (p *PricesData) HighestBid() {
 	for _, val := range p.Prices.Bids {
 		check, err := strconv.ParseFloat(val.Price, 64)
 
@@ -34,8 +34,8 @@ func (p *PricesResult) HighestBid() {
 	}
 }
 
-//FIXME need to test this
-func (p *PricesResult) LowestAsk() {
+//FIXME LowestAsk need to test this
+func (p *PricesData) LowestAsk() {
 	firstAsk, err := strconv.ParseFloat(p.Prices.Asks[0].Price, 64)
 
 	if err != nil {
@@ -59,11 +59,11 @@ func (p *PricesResult) LowestAsk() {
 	}
 }
 
-func StreamBidAsk(instrument string, out chan PricesResult) {
-	//capturing panic raised by Unmarshaling
+//StreamBidAsk capturing panic raised by Unmarshaling
+func StreamBidAsk(instrument string, out chan PricesData) {
 	defer func() {
 		if err := recover(); err != nil {
-			out <- PricesResult{Error: errors.New("error unmarshaling json")}
+			out <- PricesData{Error: errors.New("error unmarshaling json")}
 		}
 	}()
 
@@ -73,17 +73,17 @@ func StreamBidAsk(instrument string, out chan PricesResult) {
 	//ranging over values coming into channel
 	for streamResult := range streamResultChan {
 		if streamResult.Error != nil {
-			out <- PricesResult{Error: streamResult.Error}
+			out <- PricesData{Error: streamResult.Error}
 		}
 
 		//FIXME approximating length of returned byte slice. need more precision
 		priceByte := streamResult.PriceByte
 		if len(priceByte) > 100 {
 			prices := oanda.Prices{}.UnmarshalPrices(priceByte)
-			out <- PricesResult{Prices: prices}
+			out <- PricesData{Prices: prices}
 		} else {
 			heartbeat := oanda.Heartbeat{}.UnmarshalHeartbeat(priceByte)
-			out <- PricesResult{Heartbeat: heartbeat}
+			out <- PricesData{Heartbeat: heartbeat}
 		}
 	}
 }
@@ -133,7 +133,7 @@ func BidAskMultiple(instruments ...string) map[string]string {
 
 	pricing := oanda.Pricing{}.UnmarshalPricing(pricingByte)
 
-	for i, _ := range pricing.Prices {
+	for i := range pricing.Prices {
 		instrument := pricing.Prices[i].Instrument
 		price := pricing.Prices[i].Asks[0].Price
 		instrumentsMap[instrument] = price
@@ -141,6 +141,7 @@ func BidAskMultiple(instruments ...string) map[string]string {
 	return instrumentsMap
 }
 
+//Spread calcuates the spread between the LowestAsk and HighestBid
 func Spread(bid string, ask string) float64 {
 	bidF, _ := strconv.ParseFloat(bid, 64)
 	askF, _ := strconv.ParseFloat(ask, 64)
