@@ -11,10 +11,10 @@ import (
 type PricesData struct {
 	Prices           *oanda.Prices
 	Heartbeat        *oanda.Heartbeat
-	HighBid          float64
-	HighBidLiquidity int64
-	LowAsk           float64
-	LowAskLiquidity  int64
+	HighestBid          float64
+	HighestBidLiquidity int64
+	LowestAsk           float64
+	LowestAskLiquidity  int64
 	Error            error
 }
 
