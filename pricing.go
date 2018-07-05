@@ -9,17 +9,18 @@ import (
 
 //PricesData contains unmarshaled prices data and methods to find low/high bid/ask
 type PricesData struct {
-	Prices           *oanda.Prices
-	Heartbeat        *oanda.Heartbeat
-	HighestBid          float64
-	HighestBidLiquidity int64
-	LowestAsk           float64
-	LowestAskLiquidity  int64
-	Error            error
+	Prices       *oanda.Prices
+	Heartbeat    *oanda.Heartbeat
+	Bid          float64
+	BidLiquidity int64
+	Ask          float64
+	AskLiquidity int64
+	Spread		   float64
+	Error        error
 }
 
-//FIXME HighestBid need to test this
-func (p *PricesData) HighestBid() {
+//HighestBid sets the value of Bid and BidLiquidity by finding the Highest Bid
+func (p *PricesData) HighestBid() float64 {
 	for _, val := range p.Prices.Bids {
 		check, err := strconv.ParseFloat(val.Price, 64)
 
@@ -27,15 +28,16 @@ func (p *PricesData) HighestBid() {
 			p.Error = err
 		}
 
-		if check > p.HighBid {
-			p.HighBid = check
-			p.HighBidLiquidity = val.Liquidity
+		if check > p.Bid {
+			p.Bid = check
+			p.BidLiquidity = val.Liquidity
 		}
 	}
+	return p.Bid
 }
 
-//FIXME LowestAsk need to test this
-func (p *PricesData) LowestAsk() {
+//LowestAsk sets the value of Ask and AskLiquidity by finding the Lowest Ask
+func (p *PricesData) LowestAsk() float64 {
 	firstAsk, err := strconv.ParseFloat(p.Prices.Asks[0].Price, 64)
 
 	if err != nil {
@@ -43,7 +45,7 @@ func (p *PricesData) LowestAsk() {
 	}
 
 	//setting these to ensure p.LowAsk always contains a valid price
-	p.LowAsk = firstAsk
+	p.Ask = firstAsk
 
 	for _, val := range p.Prices.Asks {
 		check, err := strconv.ParseFloat(val.Price, 64)
@@ -52,11 +54,17 @@ func (p *PricesData) LowestAsk() {
 			p.Error = err
 		}
 
-		if check < p.LowAsk {
-			p.LowAsk = check
-			p.LowAskLiquidity = val.Liquidity
+		if check < p.Ask {
+			p.Ask = check
+			p.AskLiquidity = val.Liquidity
 		}
 	}
+	return p.Ask
+}
+
+//Spread calcuates the spread between the LowestAsk and HighestBid
+func (p *PricesData) CalculateSpread() {
+	p.Spread = p.LowestAsk() - p.HighestBid()
 }
 
 //StreamBidAsk capturing panic raised by Unmarshaling
@@ -139,11 +147,4 @@ func BidAskMultiple(instruments ...string) map[string]string {
 		instrumentsMap[instrument] = price
 	}
 	return instrumentsMap
-}
-
-//Spread calcuates the spread between the LowestAsk and HighestBid
-func Spread(bid string, ask string) float64 {
-	bidF, _ := strconv.ParseFloat(bid, 64)
-	askF, _ := strconv.ParseFloat(ask, 64)
-	return askF - bidF
 }
