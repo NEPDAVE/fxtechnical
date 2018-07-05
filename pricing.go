@@ -15,7 +15,7 @@ type PricesData struct {
 	BidLiquidity int64
 	Ask          float64
 	AskLiquidity int64
-	Spread		   float64
+	Spread       float64
 	Error        error
 }
 
@@ -62,7 +62,7 @@ func (p *PricesData) LowestAsk() float64 {
 	return p.Ask
 }
 
-//Spread calcuates the spread between the LowestAsk and HighestBid
+//CalculateSpread calcuates the spread between the LowestAsk and HighestBid
 func (p *PricesData) CalculateSpread() {
 	p.Spread = p.LowestAsk() - p.HighestBid()
 }
