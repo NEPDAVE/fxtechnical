@@ -46,6 +46,7 @@ func (p *PricesData) LowestAsk() float64 {
 
 	//setting these to ensure p.LowAsk always contains a valid price
 	p.Ask = firstAsk
+	p.AskLiquidity = p.Prices.Asks[0].Liquidity
 
 	for _, val := range p.Prices.Asks {
 		check, err := strconv.ParseFloat(val.Price, 64)
