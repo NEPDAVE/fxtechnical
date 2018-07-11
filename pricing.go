@@ -97,6 +97,7 @@ func StreamBidAsk(instrument string, out chan PricesData) {
 	}
 }
 
+//BidAsk returns a single bid and single ask from Oanda
 //FIXME think about if you need this func to return the lowest ask and highest bid
 //FIXME think about having this func return float64 instead of string so you
 //can immediatly do math with the return values
@@ -120,6 +121,8 @@ func BidAsk(instrument string) (string, string) {
 	return pricing.Prices[0].Bids[0].Price, pricing.Prices[0].Asks[0].Price
 }
 
+//BidAskMultiple returns a single bid and a single ask for each intrument you
+//pass it from Oanda
 //FIXME need to look into what the "real" price is, currently just taking
 //the first one at face value and using it
 func BidAskMultiple(instruments ...string) map[string]string {
