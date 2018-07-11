@@ -100,25 +100,25 @@ func StreamBidAsk(instrument string, out chan PricesData) {
 //FIXME think about if you need this func to return the lowest ask and highest bid
 //FIXME think about having this func return float64 instead of string so you
 //can immediatly do math with the return values
-// func BidAsk(instrument string) (string, string) {
-// 	//capturing panic raised by Unmarshaling
-// 	defer func() {
-// 		if err := recover(); err != nil {
-// 			fmt.Println("StreamBidAsk panicked")
-// 		}
-// 	}()
-//
-// 	pricingByte, err := oanda.GetPricing(instrument)
-//
-// 	if err != nil {
-// 		//FIXME think this through... if the caller is trying to do a type
-// 		//conversion then this will err out if you return a word
-// 		//one possibility...
-// 		return "0", "0"
-// 	}
-// 	pricing := oanda.Pricing{}.UnmarshalPricing(pricingByte)
-// 	return pricing.Prices[0].Bids[0].Price, pricing.Prices[0].Asks[0].Price
-// }
+func BidAsk(instrument string) (string, string) {
+	//capturing panic raised by Unmarshaling
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("StreamBidAsk panicked")
+		}
+	}()
+
+	pricingByte, err := oanda.GetPricing(instrument)
+
+	if err != nil {
+		//FIXME think this through... if the caller is trying to do a type
+		//conversion then this will err out if you return a word
+		//one possibility...
+		return "0", "0"
+	}
+	pricing := oanda.Pricing{}.UnmarshalPricing(pricingByte)
+	return pricing.Prices[0].Bids[0].Price, pricing.Prices[0].Asks[0].Price
+}
 
 //FIXME need to look into what the "real" price is, currently just taking
 //the first one at face value and using it
