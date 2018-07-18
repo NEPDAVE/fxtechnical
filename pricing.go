@@ -30,7 +30,7 @@ func (p PricesData) Init(instrument string) PricesData {
 	//capturing panic raised by Unmarshaling
 	defer func() {
 		if err := recover(); err != nil {
-			fmt.Printf("unmarshaling panicked: %s", err)
+			p.Error = errors.New("error unmarshaling json")
 		}
 	}()
 
@@ -38,6 +38,7 @@ func (p PricesData) Init(instrument string) PricesData {
 
 	if err != nil {
 		p.Error = err
+		return p
 	}
 
 	pricing := oanda.Pricing{}.UnmarshalPricing(pricingByte)
