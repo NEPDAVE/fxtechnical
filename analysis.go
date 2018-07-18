@@ -8,9 +8,9 @@ import (
 	"strconv"
 )
 
-//FIXME this should have a unit test!
-//returns the average and all of the values used to calculate the average
+//CloseAverage returns the average and all of the values used to calculate the average
 //so we can determine the StandardDeviation
+//FIXME this should have a unit test!
 func CloseAverage(candles *oanda.Candles, count string) (float64, []float64) {
 	sum := 0.0
 	pricesSlice := []float64{}
@@ -19,9 +19,9 @@ func CloseAverage(candles *oanda.Candles, count string) (float64, []float64) {
 		log.Fatal(err)
 	}
 
-	for _, v := range candles.Candles {
+	for _, val := range candles.Candles {
 
-		f, err := strconv.ParseFloat(v.Mid.Close, 64)
+		f, err := strconv.ParseFloat(val.Mid.Close, 64)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -32,14 +32,14 @@ func CloseAverage(candles *oanda.Candles, count string) (float64, []float64) {
 	return (sum / float64(i)), pricesSlice
 }
 
-//FIXME make sure you know how this works
+//StandardDeviation returns the standard deviate for the parameters passed
 func StandardDeviation(average float64, pricesSlice []float64) float64 {
 	sd := 0.0
 	counter := 0.0
 
-	for _, v := range pricesSlice {
+	for _, val := range pricesSlice {
 		// The use of Pow math function func Pow(x, y float64) float64
-		sd += math.Pow(v-average, 2)
+		sd += math.Pow(val-average, 2)
 		counter++
 	}
 	// The use of Sqrt math function func Sqrt(x float64) float64
