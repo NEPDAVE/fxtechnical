@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-//PricesData contains unmarshaled prices data and methods to find low/high bid/ask
+//PricesData contains unmarshaled prices data and methods to populate struct fields
 type PricesData struct {
 	Prices       *oanda.Prices
 	Heartbeat    *oanda.Heartbeat
@@ -17,6 +17,25 @@ type PricesData struct {
 	AskLiquidity int64
 	Spread       float64
 	Error        error
+}
+
+//Init populates PricesData with
+func (p PricesData) Init(instrument string) {
+	//capturing panic raised by Unmarshaling
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Printf("unmarshaling panicked: %s", err)
+		}
+	}()
+
+	pricingByte, err := oanda.GetPricing(instrument)
+
+	if err != nil {
+		p.Error = err
+	}
+
+	pricing := oanda.Pricing{}.UnmarshalPricing(pricingByte)
+	p.Prices = &pricing.Prices[0]
 }
 
 //HighestBid sets the value of Bid and BidLiquidity by finding the Highest Bid
@@ -112,11 +131,9 @@ func BidAsk(instrument string) (string, string) {
 	pricingByte, err := oanda.GetPricing(instrument)
 
 	if err != nil {
-		//FIXME think this through... if the caller is trying to do a type
-		//conversion then this will err out if you return a word
-		//one possibility...
 		return "0", "0"
 	}
+
 	pricing := oanda.Pricing{}.UnmarshalPricing(pricingByte)
 	return pricing.Prices[0].Bids[0].Price, pricing.Prices[0].Asks[0].Price
 }
