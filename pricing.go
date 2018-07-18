@@ -7,6 +7,12 @@ import (
 	"strconv"
 )
 
+/*
+***************************
+PricesData struct and methods
+***************************
+*/
+
 //PricesData contains unmarshaled prices data and methods to populate struct fields
 type PricesData struct {
 	Prices       *oanda.Prices
@@ -19,8 +25,8 @@ type PricesData struct {
 	Error        error
 }
 
-//Init populates PricesData with
-func (p PricesData) Init(instrument string) {
+//Init populates PricesData with data and returns itself
+func (p PricesData) Init(instrument string) PricesData {
 	//capturing panic raised by Unmarshaling
 	defer func() {
 		if err := recover(); err != nil {
@@ -36,6 +42,8 @@ func (p PricesData) Init(instrument string) {
 
 	pricing := oanda.Pricing{}.UnmarshalPricing(pricingByte)
 	p.Prices = &pricing.Prices[0]
+
+	return p
 }
 
 //HighestBid sets the value of Bid and BidLiquidity by finding the Highest Bid
@@ -87,8 +95,15 @@ func (p *PricesData) CalculateSpread() {
 	p.Spread = p.LowestAsk() - p.HighestBid()
 }
 
-//StreamBidAsk capturing panic raised by Unmarshaling
+/*
+***************************
+stand alone pricing functions
+***************************
+*/
+
+//StreamBidAsk kicks off pricing stream
 func StreamBidAsk(instrument string, out chan PricesData) {
+	//capturing panic raised by Unmarshaling
 	defer func() {
 		if err := recover(); err != nil {
 			out <- PricesData{Error: errors.New("error unmarshaling json")}
@@ -116,10 +131,7 @@ func StreamBidAsk(instrument string, out chan PricesData) {
 	}
 }
 
-//BidAsk returns a single bid and single ask from Oanda
-//FIXME think about if you need this func to return the lowest ask and highest bid
-//FIXME think about having this func return float64 instead of string so you
-//can immediatly do math with the return values
+//BidAsk returns the first Bid and Ask in the Prices struct
 func BidAsk(instrument string) (string, string) {
 	//capturing panic raised by Unmarshaling
 	defer func() {
@@ -138,10 +150,8 @@ func BidAsk(instrument string) (string, string) {
 	return pricing.Prices[0].Bids[0].Price, pricing.Prices[0].Asks[0].Price
 }
 
-//BidAskMultiple returns a single bid and a single ask for each intrument you
+//BidAskMultiple returns the first bid and the first ask for each intrument you
 //pass it from Oanda
-//FIXME need to look into what the "real" price is, currently just taking
-//the first one at face value and using it
 func BidAskMultiple(instruments ...string) map[string]string {
 	//capturing panic raised by Unmarshaling
 	defer func() {
