@@ -50,3 +50,11 @@ func StandardDeviation(average float64, pricesSlice []float64) float64 {
 
 	return sd
 }
+
+func bolingerBand(instrument string, count int, granularity string) (float64, float64) {
+	candles, _ := fxtech.Candles("instrument", count, granularity)
+	average, pricesSlice := fxtech.CloseAverage(candles, count)
+	sd := fxtech.StandardDeviation(average, pricesSlice)
+	upperBand := average + (sd * 2)
+	lowerBand := average - (sd * 2)
+}
