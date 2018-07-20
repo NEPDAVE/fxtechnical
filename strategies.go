@@ -1,14 +1,38 @@
 package fxtechnical
 
 import (
+	"fmt"
 	oanda "github.com/nepdave/oanda"
+	"log"
 )
 
 /*
 ***************************
-Raider is a trading algorithm that implements the the Bolinger Band indicator
+Raider is a trading algorithm that implements the Bolinger Band indicator
 ***************************
 */
+
+//ExecuteRaider raider executes the Raider trading algorithm
+func ExecuteRaider(instrument string) {
+	bb := BollingerBand{}.Init(instrument, "20", "D")
+
+	raiderChan := make(chan Raider)
+	//FIXME where do we really want to set the number of units?
+	go Raider{}.ContinuousRaid(bb, 1, raiderChan)
+
+	fmt.Println("entering range over raider channel")
+	for raider := range raiderChan {
+		if raider.Error != nil {
+			log.Println(raider.Error)
+			continue
+		}
+
+		if raider.ExecuteOrder == 1 {
+			ordersByte := oanda.MarshalOrders(raider.Orders)
+			fmt.Println(ordersByte)
+		}
+	}
+}
 
 //Raider contains order data and the execute order decision
 type Raider struct {
@@ -69,6 +93,11 @@ func (r Raider) ContinuousRaid(bb BollingerBand, units int, out chan Raider) {
 	for pricesData := range oandaChan {
 		if pricesData.Error != nil {
 			out <- Raider{Error: pricesData.Error}
+		}
+
+		if pricesData.Heartbeat != nil {
+			fmt.Println("Heartbeat...")
+			continue
 		}
 
 		//FIXME need to have better error handling here
