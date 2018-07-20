@@ -44,6 +44,9 @@ func (p PricesData) Init(instrument string) PricesData {
 	pricing := oanda.Pricing{}.UnmarshalPricing(pricingByte)
 	p.Prices = &pricing.Prices[0]
 
+	//calling CalculateSpread also sets bid/ask fields in struct
+	p.CalculateSpread()
+
 	return p
 }
 
@@ -123,9 +126,13 @@ func StreamBidAsk(instrument string, out chan PricesData) {
 		//FIXME approximating length of returned byte slice. need more precision
 		priceByte := streamResult.PriceByte
 		if len(priceByte) > 100 {
+			//most likely an actual price
 			prices := oanda.Prices{}.UnmarshalPrices(priceByte)
-			out <- PricesData{Prices: prices}
+			pricesData := PricesData{Prices: prices}
+			pricesData.CalculateSpread()
+			out <- pricesData
 		} else {
+			//most likely a heartbeat
 			heartbeat := oanda.Heartbeat{}.UnmarshalHeartbeat(priceByte)
 			out <- PricesData{Heartbeat: heartbeat}
 		}
