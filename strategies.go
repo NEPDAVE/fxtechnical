@@ -115,6 +115,7 @@ func (r Raider) ContinuousRaid(bb BollingerBand, units int, out chan Raider) {
 			continue
 		}
 
+    //print prices data
 		fmt.Println(pricesData)
 
 		//FIXME need to have better error handling here
