@@ -2,7 +2,6 @@ package fxtechnical
 
 import (
 	"fmt"
-	//"encoding/json"
 	oanda "github.com/nepdave/oanda"
 	twilio "github.com/nepdave/twilio"
 	"log"
@@ -29,7 +28,7 @@ func ExecuteRaider(instrument string, units string) {
 			continue
 		}
 
-    //calls to marshaling the order data and submiting order to Oanda
+		//calls to marshaling the order data and submiting order to Oanda
 		if raider.ExecuteOrder == 1 {
 			raider.Orders.OrderData.Units = units
 			ordersByte := oanda.MarshalOrders(raider.Orders)
@@ -38,7 +37,8 @@ func ExecuteRaider(instrument string, units string) {
 			if err != nil {
 				log.Println(err)
 			}
-			//add struct to unmarshal.go for returned pricesByte
+
+			//FIXME add struct to unmarshal.go for returned pricesByte
 			//from SubmitOrder.. for now possibly convert pricesByte
 			//to string and send that as an SMS? sure lets do it
 
