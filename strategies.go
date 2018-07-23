@@ -2,7 +2,9 @@ package fxtechnical
 
 import (
 	"fmt"
+	//"encoding/json"
 	oanda "github.com/nepdave/oanda"
+	twilio "github.com/nepdave/twilio"
 	"log"
 )
 
@@ -13,7 +15,7 @@ Raider is a trading algorithm that implements the Bolinger Band indicator
 */
 
 //ExecuteRaider raider executes the Raider trading algorithm
-func ExecuteRaider(instrument string) {
+func ExecuteRaider(instrument string, units string) {
 	bb := BollingerBand{}.Init(instrument, "20", "D")
 
 	raiderChan := make(chan Raider)
@@ -27,9 +29,22 @@ func ExecuteRaider(instrument string) {
 			continue
 		}
 
+    //calls to marshaling the order data and submiting order to Oanda
 		if raider.ExecuteOrder == 1 {
+			raider.Orders.OrderData.Units = units
 			ordersByte := oanda.MarshalOrders(raider.Orders)
-			fmt.Println(ordersByte)
+			ordersResponseByte, err := oanda.SubmitOrder(ordersByte)
+
+			if err != nil {
+				log.Println(err)
+			}
+			//add struct to unmarshal.go for returned pricesByte
+			//from SubmitOrder.. for now possibly convert pricesByte
+			//to string and send that as an SMS? sure lets do it
+
+			message := fmt.Sprint("NEW ORDER SUBMITTED: \n") + string(ordersResponseByte)
+			twilio.SendSms("5038411492", message)
+			fmt.Println(message)
 		}
 	}
 }
@@ -96,9 +111,11 @@ func (r Raider) ContinuousRaid(bb BollingerBand, units int, out chan Raider) {
 		}
 
 		if pricesData.Heartbeat != nil {
-			fmt.Println("Heartbeat...")
+			fmt.Println(pricesData.Heartbeat)
 			continue
 		}
+
+		fmt.Println(pricesData)
 
 		//FIXME need to have better error handling here
 		if pricesData.Bid > bb.UpperBand {
