@@ -3,7 +3,7 @@ package fxtechnical
 import (
 	"fmt"
 	oanda "github.com/nepdave/oanda"
-	twilio "github.com/nepdave/twilio"
+	//twilio "github.com/nepdave/twilio"
 	"log"
 )
 
@@ -29,7 +29,7 @@ func ExecuteRaider(instrument string, units string) {
 		}
 
 		//calls to marshaling the order data and submiting order to Oanda
-		if raider.ExecuteOrder == 1 {
+		if raider.ExecuteOrder != 1 {
 			raider.Orders.OrderData.Units = units
 			ordersByte := oanda.MarshalOrders(raider.Orders)
 			ordersResponseByte, err := oanda.SubmitOrder(ordersByte)
@@ -43,7 +43,7 @@ func ExecuteRaider(instrument string, units string) {
 			//to string and send that as an SMS? sure lets do it
 
 			message := fmt.Sprint("NEW ORDER SUBMITTED: \n") + string(ordersResponseByte)
-			twilio.SendSms("5038411492", message)
+			//twilio.SendSms("5038411492", message)
 			fmt.Println(message)
 		}
 	}
