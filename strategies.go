@@ -13,12 +13,12 @@ Raider is a trading algorithm that implements the Bolinger Band indicator
 */
 
 //ExecuteRaider raider executes the Raider trading algorithm
-func ExecuteRaider(instrument string) {
+func ExecuteRaider(instrument string, units string) {
 	bb := BollingerBand{}.Init(instrument, "20", "D")
 
 	raiderChan := make(chan Raider)
 	//FIXME where do we really want to set the number of units?
-	go Raider{}.ContinuousRaid(bb, 1, raiderChan)
+	go Raider{}.ContinuousRaid(bb, units, raiderChan)
 
 	fmt.Println("entering range over raider channel")
 	for raider := range raiderChan {
@@ -42,7 +42,7 @@ type Raider struct {
 }
 
 //SingleRaid compares a single PricesData to a BollingerBand and returns a trading decision
-func (r Raider) SingleRaid(bb BollingerBand, units int) Raider {
+func (r Raider) SingleRaid(bb BollingerBand, units string) Raider {
 	//initializing pricesData struct
 	pricesData := PricesData{}.Init(bb.Instrument)
 
@@ -86,7 +86,7 @@ func (r Raider) SingleRaid(bb BollingerBand, units int) Raider {
 //BollingerBand and sends a trading decision over a channel to the caller
 //FIXME if running this function coninuosly be careful to generate a new
 //bollinger band at the start of each day
-func (r Raider) ContinuousRaid(bb BollingerBand, units int, out chan Raider) {
+func (r Raider) ContinuousRaid(bb BollingerBand, units string, out chan Raider) {
 	oandaChan := make(chan PricesData)
 	go StreamBidAsk(bb.Instrument, oandaChan)
 
