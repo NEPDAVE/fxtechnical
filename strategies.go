@@ -3,7 +3,7 @@ package fxtechnical
 import (
 	"fmt"
 	oanda "github.com/nepdave/oanda"
-	//twilio "github.com/nepdave/twilio"
+	twilio "github.com/nepdave/twilio"
 	"log"
 	"sync"
 	"time"
@@ -25,7 +25,7 @@ func ExecuteRaider(instrument string, units string) {
 	go func() {
 		for {
 			now := time.Now()
-			if now.Hour() == 24 && now.Minute() == 0 {
+			if now.Hour() == 00 && now.Minute() == 0 && now.Second() < 5 {
 				bb = BollingerBand{}.Init(instrument, "20", "D")
 			}
 			wg.Wait()
@@ -53,12 +53,15 @@ func ExecuteRaider(instrument string, units string) {
 				log.Println(err)
 			}
 
+			//FIXME need to add call to CheckOrder() you wan to avoid continuing
+			//to place trades for an instrument if one has already been placed.
+
 			//FIXME add struct to unmarshal.go for returned pricesByte
 			//from SubmitOrder.. for now possibly convert pricesByte
 			//to string and send that as an SMS? sure lets do it
 
 			message := fmt.Sprint("NEW ORDER SUBMITTED: \n") + string(ordersResponseByte)
-			//twilio.SendSms("5038411492", message)
+			twilio.SendSms("5038411492", message)
 			fmt.Println(message)
 		}
 	}
