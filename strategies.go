@@ -22,13 +22,14 @@ func ExecuteRaider(instrument string, units string) {
 	bb := BollingerBand{}.Init(instrument, "20", "D")
 
 	//anonymous go func executing concurrently to update bb everyday at midnight
+	//link to good time example becasue this has not been tested
+	//http://www.golangprograms.com/get-year-month-day-hour-min-and-second-from-current-date-and-time.html
 	go func() {
 		for {
 			now := time.Now()
 			if now.Hour() == 00 && now.Minute() == 0 && now.Second() < 5 {
 				bb = BollingerBand{}.Init(instrument, "20", "D")
 			}
-			wg.Wait()
 		}
 	}()
 
