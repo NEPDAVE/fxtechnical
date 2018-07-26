@@ -5,7 +5,11 @@ import (
 	oanda "github.com/nepdave/oanda"
 	//twilio "github.com/nepdave/twilio"
 	"log"
+	"sync"
+	"time"
 )
+
+var wg sync.WaitGroup
 
 /*
 ***************************
@@ -16,6 +20,17 @@ Raider is a trading algorithm that implements the Bolinger Band indicator
 //ExecuteRaider raider executes the Raider trading algorithm
 func ExecuteRaider(instrument string, units string) {
 	bb := BollingerBand{}.Init(instrument, "20", "D")
+
+	//anonymous go func executing concurrently to update bb everyday at midnight
+	go func() {
+		for {
+			now := time.Now()
+			if now.Hour() == 24 && now.Minute() == 0 {
+				bb = BollingerBand{}.Init(instrument, "20", "D")
+			}
+			wg.Done()
+		}
+	}()
 
 	raiderChan := make(chan Raider)
 	//FIXME where do we really want to set the number of units?
@@ -29,7 +44,7 @@ func ExecuteRaider(instrument string, units string) {
 		}
 
 		//calls to marshaling the order data and submiting order to Oanda
-		if raider.ExecuteOrder != 1 {
+		if raider.ExecuteOrder == 1 {
 			raider.Orders.OrderData.Units = units
 			ordersByte := oanda.MarshalOrders(raider.Orders)
 			ordersResponseByte, err := oanda.SubmitOrder(ordersByte)
@@ -115,7 +130,7 @@ func (r Raider) ContinuousRaid(bb BollingerBand, units string, out chan Raider) 
 			continue
 		}
 
-    //print prices data
+		//print prices data
 		fmt.Println(pricesData)
 
 		//FIXME need to have better error handling here
