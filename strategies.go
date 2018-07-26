@@ -56,6 +56,9 @@ func ExecuteRaider(instrument string, units string) {
 
 			//FIXME need to add call to CheckOrder() you wan to avoid continuing
 			//to place trades for an instrument if one has already been placed.
+			//could potentially be a good use of the select statement, basically
+			//choosing between the goroutine "listening" to price movement aka ContinuousRaid
+			//and a goroutine "listening" to the order aka ContinousOrderCheck
 
 			//FIXME add struct to unmarshal.go for returned pricesByte
 			//from SubmitOrder.. for now possibly convert pricesByte
