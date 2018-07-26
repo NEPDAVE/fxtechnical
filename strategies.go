@@ -3,6 +3,7 @@ package fxtechnical
 import (
 	"fmt"
 	oanda "github.com/nepdave/oanda"
+	twilio "github.com/nepdave/twilio"
 	"log"
 )
 
@@ -27,9 +28,23 @@ func ExecuteRaider(instrument string, units string) {
 			continue
 		}
 
+		//calls to marshaling the order data and submiting order to Oanda
 		if raider.ExecuteOrder == 1 {
+			raider.Orders.OrderData.Units = units
 			ordersByte := oanda.MarshalOrders(raider.Orders)
-			fmt.Println(ordersByte)
+			ordersResponseByte, err := oanda.SubmitOrder(ordersByte)
+
+			if err != nil {
+				log.Println(err)
+			}
+
+			//FIXME add struct to unmarshal.go for returned pricesByte
+			//from SubmitOrder.. for now possibly convert pricesByte
+			//to string and send that as an SMS? sure lets do it
+
+			message := fmt.Sprint("NEW ORDER SUBMITTED: \n") + string(ordersResponseByte)
+			twilio.SendSms("5038411492", message)
+			fmt.Println(message)
 		}
 	}
 }
@@ -96,9 +111,12 @@ func (r Raider) ContinuousRaid(bb BollingerBand, units string, out chan Raider) 
 		}
 
 		if pricesData.Heartbeat != nil {
-			fmt.Println("Heartbeat...")
+			fmt.Println(pricesData.Heartbeat)
 			continue
 		}
+
+    //print prices data
+		fmt.Println(pricesData)
 
 		//FIXME need to have better error handling here
 		if pricesData.Bid > bb.UpperBand {
