@@ -28,7 +28,7 @@ func ExecuteRaider(instrument string, units string) {
 			if now.Hour() == 24 && now.Minute() == 0 {
 				bb = BollingerBand{}.Init(instrument, "20", "D")
 			}
-			wg.Done()
+			wg.Wait()
 		}
 	}()
 
