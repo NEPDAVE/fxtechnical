@@ -129,7 +129,7 @@ func (r Raider) SingleRaid(bb BollingerBand, units string) Raider {
 //BollingerBand and sends a trading decision over a channel to the caller
 //FIXME if running this function coninuosly be careful to generate a new
 //bollinger band at the start of each day
-func (r Raider) ContinuousRaid(bb BollingerBand, units string, out chan Raider) {
+func (r Raider) ContinuousRaid(bb *BollingerBand, units string, out chan Raider) {
 	oandaChan := make(chan PricesData)
 	go StreamBidAsk(bb.Instrument, oandaChan)
 

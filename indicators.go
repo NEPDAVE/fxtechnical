@@ -19,7 +19,7 @@ type BollingerBand struct {
 
 //Init populates and returns BollingerBand struct
 //FIXME currently not doing any error checking here
-func (b BollingerBand) Init(instrument string, count string, granularity string) BollingerBand {
+func (b BollingerBand) Init(instrument string, count string, granularity string) *BollingerBand {
 	candles, _ := Candles(instrument, count, granularity)
 	average, pricesSlice := CloseAverage(candles, count)
 	b.Average = average
@@ -30,7 +30,7 @@ func (b BollingerBand) Init(instrument string, count string, granularity string)
 	b.Count = count
 	b.Granularity = granularity
 
-	return b
+	return &b
 }
 
 //DoubleBollingerBand contains unmarshaled prices data and methods to populate struct fields
