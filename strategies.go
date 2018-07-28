@@ -3,7 +3,7 @@ package fxtechnical
 import (
 	"fmt"
 	oanda "github.com/nepdave/oanda"
-	twilio "github.com/nepdave/twilio"
+	// twilio "github.com/nepdave/twilio"
 	"log"
 	"sync"
 	"time"
@@ -24,6 +24,7 @@ func ExecuteRaider(instrument string, units string) {
 	//anonymous go func executing concurrently to update bb everyday at midnight
 	//link to good time example becasue this has not been tested
 	//http://www.golangprograms.com/get-year-month-day-hour-min-and-second-from-current-date-and-time.html
+	wg.Add(1)
 	go func() {
 		for {
 			now := time.Now()
@@ -35,6 +36,7 @@ func ExecuteRaider(instrument string, units string) {
 
 	raiderChan := make(chan Raider)
 	//FIXME where do we really want to set the number of units?
+	wg.Add(1)
 	go Raider{}.ContinuousRaid(bb, units, raiderChan)
 
 	fmt.Println("entering range over raider channel")
@@ -65,10 +67,14 @@ func ExecuteRaider(instrument string, units string) {
 			//to string and send that as an SMS? sure lets do it
 
 			message := fmt.Sprint("NEW ORDER SUBMITTED: \n") + string(ordersResponseByte)
-			twilio.SendSms("5038411492", message)
+			//twilio.SendSms("5038411492", message)
 			fmt.Println(message)
+			//orderSubmission := oanda.OrderSubmission{}.UnmarshalOrderSubmission(ordersResponseByte)
+			//fmt.Println("order submission:")
+			//fmt.Println(orderSubmission)
 		}
 	}
+	wg.Wait()
 }
 
 //Raider contains order data and the execute order decision
