@@ -47,7 +47,7 @@ func ExecuteRaider(instrument string, units string) {
 		}
 
 		//calls to marshaling the order data and submiting order to Oanda
-		if raider.ExecuteOrder == 1 {
+		if raider.ExecuteOrder != 1 {
 			raider.Orders.OrderData.Units = units
 			ordersByte := oanda.MarshalOrders(raider.Orders)
 			ordersResponseByte, err := oanda.SubmitOrder(ordersByte)
@@ -66,12 +66,17 @@ func ExecuteRaider(instrument string, units string) {
 			//from SubmitOrder.. for now possibly convert pricesByte
 			//to string and send that as an SMS? sure lets do it
 
-			message := fmt.Sprint("NEW ORDER SUBMITTED: \n") + string(ordersResponseByte)
+			//message := fmt.Sprint("NEW ORDER SUBMITTED: \n") + string(ordersResponseByte)
 			//twilio.SendSms("5038411492", message)
-			fmt.Println(message)
-			//orderSubmission := oanda.OrderSubmission{}.UnmarshalOrderSubmission(ordersResponseByte)
-			//fmt.Println("order submission:")
-			//fmt.Println(orderSubmission)
+			//fmt.Println(message)
+			orderCreateTransaction := oanda.OrderCreateTransaction{}.
+			UnmarshalOrderCreateTransaction(ordersResponseByte)
+			fmt.Println("")
+			fmt.Println("")
+			fmt.Println("order submission:")
+			fmt.Println(orderCreateTransaction)
+			fmt.Println("")
+			fmt.Println("")
 		}
 	}
 	wg.Wait()
