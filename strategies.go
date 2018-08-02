@@ -50,7 +50,11 @@ func ExecuteRaider(instrument string, units string) {
 		if raider.ExecuteOrder != 1 {
 			raider.Orders.OrderData.Units = units
 			ordersByte := oanda.MarshalOrders(raider.Orders)
-			ordersResponseByte, err := oanda.SubmitOrder(ordersByte)
+
+      fmt.Println("ORDER:")
+			fmt.Println(raider.Orders)
+
+			createOrderByte, err := oanda.CreateOrder(ordersByte)
 
 			if err != nil {
 				log.Println(err)
@@ -69,17 +73,31 @@ func ExecuteRaider(instrument string, units string) {
 			//message := fmt.Sprint("NEW ORDER SUBMITTED: \n") + string(ordersResponseByte)
 			//twilio.SendSms("5038411492", message)
 			//fmt.Println(message)
+
+			//fmt.Println("Create Order Byte:")
+      //fmt.Println(string(createOrderByte))
 			orderCreateTransaction := oanda.OrderCreateTransaction{}.
-			UnmarshalOrderCreateTransaction(ordersResponseByte)
+			UnmarshalOrderCreateTransaction(createOrderByte)
+
 			fmt.Println("")
+			fmt.Println("order ID:")
+			orderID := orderCreateTransaction.OrderFillTransaction.OrderID
+		  fmt.Println(orderID)
 			fmt.Println("")
-			fmt.Println("order submission:")
-			fmt.Println(orderCreateTransaction)
-			fmt.Println("")
-			fmt.Println("")
-		}
+
+			checkOrderByte, err := oanda.CheckOrder(orderID)
+
+			if err != nil {
+				log.Println(err)
+			}
+
+			fmt.Println("Check Order Response:")
+			fmt.Println(string(checkOrderByte))
+
 	}
 	wg.Wait()
+}
+
 }
 
 //Raider contains order data and the execute order decision
@@ -149,7 +167,7 @@ func (r Raider) ContinuousRaid(bb *BollingerBand, units string, out chan Raider)
 		}
 
 		//print prices data
-		fmt.Println(pricesData)
+		//fmt.Println(pricesData)
 
 		//FIXME need to have better error handling here
 		if pricesData.Bid > bb.UpperBand {
