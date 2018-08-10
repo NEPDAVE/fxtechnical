@@ -50,7 +50,7 @@ func ExecuteRaider(instrument string, units string) {
 		if raider.ExecuteOrder != 1 {
 			raider.Orders.OrderData.Units = units
 			ordersByte := oanda.MarshalOrders(raider.Orders)
-			ordersResponseByte, err := oanda.SubmitOrder(ordersByte)
+			ordersResponseByte, err := oanda.CreateOrder(ordersByte)
 
 			if err != nil {
 				log.Println(err)
@@ -71,11 +71,16 @@ func ExecuteRaider(instrument string, units string) {
 			//fmt.Println(message)
 			orderCreateTransaction := oanda.OrderCreateTransaction{}.
 			UnmarshalOrderCreateTransaction(ordersResponseByte)
+			orderID := orderCreateTransaction.OrderFillTransaction.OrderID
 			fmt.Println("")
 			fmt.Println("")
 			fmt.Println("order submission:")
 			fmt.Println(orderCreateTransaction)
 			fmt.Println("")
+			fmt.Println("order status:")
+			checkOrderByte, err := oanda.CheckOrder(orderID)
+			fmt.Println(string(checkOrderByte))
+
 			fmt.Println("")
 		}
 	}
