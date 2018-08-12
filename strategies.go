@@ -50,7 +50,7 @@ func ExecuteRaider(instrument string, units string) {
 		if raider.ExecuteOrder != 1 {
 			raider.Orders.OrderData.Units = units
 
-			//creating []byte order data for creating order
+			//creating []byte order data for the order HTTP body
 			ordersByte := oanda.MarshalOrders(raider.Orders)
 
 			//creating/submiting the order to oanda
