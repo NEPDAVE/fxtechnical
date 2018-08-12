@@ -50,52 +50,22 @@ func ExecuteRaider(instrument string, units string) {
 		if raider.ExecuteOrder != 1 {
 			raider.Orders.OrderData.Units = units
 			ordersByte := oanda.MarshalOrders(raider.Orders)
-			ordersResponseByte, err := oanda.CreateOrder(ordersByte)
-
-			fmt.Println("ORDER:")
-			fmt.Println(raider.Orders)
-
 			createOrderByte, err := oanda.CreateOrder(ordersByte)
 
 			if err != nil {
 				log.Println(err)
 			}
 
-			//FIXME need to add call to CheckOrder() you wan to avoid continuing
-			//to place trades for an instrument if one has already been placed.
-			//could potentially be a good use of the select statement, basically
-			//choosing between the goroutine "listening" to price movement aka ContinuousRaid
-			//and a goroutine "listening" to the order aka ContinousOrderCheck
-
-			//FIXME add struct to unmarshal.go for returned pricesByte
-			//from SubmitOrder.. for now possibly convert pricesByte
-			//to string and send that as an SMS? sure lets do it
-
-			//message := fmt.Sprint("NEW ORDER SUBMITTED: \n") + string(ordersResponseByte)
-			//twilio.SendSms("5038411492", message)
-			//fmt.Println(message)
-
-			//fmt.Println("Create Order Byte:")
-			//fmt.Println(string(createOrderByte))
 			orderCreateTransaction := oanda.OrderCreateTransaction{}.
-				UnmarshalOrderCreateTransaction(ordersResponseByte)
+				UnmarshalOrderCreateTransaction(createOrderByte)
+
 			orderID := orderCreateTransaction.OrderFillTransaction.OrderID
-			fmt.Println("")
+
 			fmt.Println("")
 			fmt.Println("order submission:")
 			fmt.Println(orderCreateTransaction)
 			fmt.Println("")
-			fmt.Println("order status:")
-			checkOrderByte, err := oanda.CheckOrder(orderID)
-			fmt.Println(string(checkOrderByte))
-			UnmarshalOrderCreateTransaction(createOrderByte)
-
-			fmt.Println("")
-			fmt.Println("order ID:")
-			orderID := orderCreateTransaction.OrderFillTransaction.OrderID
-			fmt.Println(orderID)
-			fmt.Println("")
-
+			fmt.Println("order check:")
 			checkOrderByte, err := oanda.CheckOrder(orderID)
 
 			if err != nil {
