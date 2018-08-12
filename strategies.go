@@ -49,25 +49,29 @@ func ExecuteRaider(instrument string, units string) {
 		//calls to marshaling the order data and submiting order to Oanda
 		if raider.ExecuteOrder != 1 {
 			raider.Orders.OrderData.Units = units
+
+			//creating []byte order data for creating order
 			ordersByte := oanda.MarshalOrders(raider.Orders)
+
+			//creating/submiting the order to oanda
 			createOrderByte, err := oanda.CreateOrder(ordersByte)
 
+			//checking CreateOrder error
 			if err != nil {
 				log.Println(err)
 			}
 
+			//unmarshaling the returned createOrderByte into a native struct
 			orderCreateTransaction := oanda.OrderCreateTransaction{}.
 				UnmarshalOrderCreateTransaction(createOrderByte)
 
+			//accessing the orderID field and saving it to a variable
 			orderID := orderCreateTransaction.OrderFillTransaction.OrderID
 
-			fmt.Println("")
-			fmt.Println("order submission:")
-			fmt.Println(orderCreateTransaction)
-			fmt.Println("")
-			fmt.Println("order check:")
+			//using the orderID to check the order status
 			checkOrderByte, err := oanda.CheckOrder(orderID)
 
+			//checking the the CheckOrder error
 			if err != nil {
 				log.Println(err)
 			}
