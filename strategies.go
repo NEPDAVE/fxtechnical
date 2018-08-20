@@ -46,6 +46,8 @@ func ExecuteRaider(instrument string, units string) {
 			continue
 		}
 
+		fmt.Println(raider)
+
 		//calls to marshaling the order data and submiting order to Oanda
 		if raider.ExecuteOrder != 1 {
 			raider.Orders.OrderData.Units = units
