@@ -11,6 +11,9 @@ import (
 
 var wg sync.WaitGroup
 
+//trying to figure out select stuff
+//https://play.golang.org/p/HrPk4uEO2tS
+
 /*
 ***************************
 Raider is a trading algorithm that implements the Bolinger Band indicator
@@ -34,13 +37,18 @@ func (r Raider) Init(instrument string, units string) {
 	for {
 		select {
 		case r.RaiderStatus = <-OrdersClosedChan:
-			ExecuteRaider(instrument, units)
+			CheckConditions(instrument, units, )
 		case r.RaiderStatus = <-OrdersPendingChan:
 			oanda.CheckOrder(r.OrderID)
 		case r.RaiderStatus = <-OrdersOpenChan:
 			oanda.CheckOrder(r.OrderID)
 		}
 	}
+
+}
+
+func (r *Raider) CheckConditions(instrument string, units string, OrdersClosedChan chan) {
+	fmt.Println("CheckConditions")
 
 }
 
