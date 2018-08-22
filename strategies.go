@@ -9,8 +9,6 @@ import (
 	"time"
 )
 
-var wg sync.WaitGroup
-
 //trying to figure out select stuff
 //https://play.golang.org/p/HrPk4uEO2tS
 
@@ -23,7 +21,7 @@ Raider is a trading algorithm that implements the Bolinger Band indicator
 //Raider holds the algo state and current OrderID
 type Raider struct {
 	RaiderStatus int //0 = orders closed. 1 = order submitted. 2 = orders open.
-	OrderID      int
+	OrderID      string
 }
 
 //Init kicks off the select pattern to check on raider status
@@ -35,23 +33,25 @@ func (r Raider) Init(instrument string, units string) {
 
 	wg.Add(2)
 	go r.CheckConditions("instrument string", "units string", OrdersStatusChan)
-	go r.CheckOrder(r.RaiderStatus, OrdersStatusChan)
-	wg.Wait()
+	go r.CheckOrder()
+
 
 	for {
 		select {
-		case r.RaiderStatus = <-OrdersChan:
+		case r.RaiderStatus = <-OrdersStatusChan:
 			fmt.Println("received: ", r.RaiderStatus)
 		default:
 			fmt.Println("no data...")
 		}
 	}
+
+	wg.Wait()
 }
 
 func (r *Raider) CheckConditions(instrument string, units string, OrdersStatusChan chan int) {
 	fmt.Println("Checking Conditions...")
 	//checks bollinger band execute signal
-	go r.ExecuteBB(instrument, units)
+	go r.ExecuteBB(instrument, units, OrdersStatusChan)
 
 	for OrderStatus := range OrdersStatusChan {
 		if OrderStatus == 1 {
@@ -61,9 +61,9 @@ func (r *Raider) CheckConditions(instrument string, units string, OrdersStatusCh
 }
 
 //ExecuteBB executes the Raider trading algorithm
-func (r *Raider) ExecuteBB(instrument string, units string) {
+func (r *Raider) ExecuteBB(instrument string, units string, OrdersStatusChan chan int) {
 	bb := BollingerBand{}.Init(instrument, "20", "D")
-	openTrade := 0
+	var wg sync.WaitGroup
 
 	//anonymous go func executing concurrently to update bb everyday at midnight
 	wg.Add(1)
@@ -114,8 +114,8 @@ func (r *Raider) ExecuteBB(instrument string, units string) {
 			orderID := orderCreateTransaction.OrderFillTransaction.OrderID
 
 			//sending new r.RaiderStatus and setting OrderID
-			OrderIDChan <- 1
-			r.OrderID
+			OrdersStatusChan <- 1
+			r.OrderID = orderID
 
 		}
 		wg.Wait()
@@ -128,6 +128,11 @@ func (r *Raider) CheckOrder() {
 	for {
 		if r.RaiderStatus == 1 {
 			checkOrderByte, err := oanda.CheckOrder(r.OrderID)
+			if err != nil{
+				fmt.Println(err)
+			}
+			fmt.Println("check order byte:")
+			fmt.Println(checkOrderByte)
 		}
 	}
 }
