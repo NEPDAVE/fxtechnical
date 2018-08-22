@@ -22,7 +22,7 @@ Raider is a trading algorithm that implements the Bolinger Band indicator
 
 //Raider holds the algo state and current OrderID
 type Raider struct {
-	RaiderStatus int //0 = orders closed. 1 = orders pending. 2 = orders open.
+	RaiderStatus int //0 = orders closed. 1 = order submitted. 2 = orders open.
 	OrderID      int
 }
 
@@ -30,36 +30,46 @@ type Raider struct {
 func (r Raider) Init(instrument string, units string) {
 
 	//0 = orders closed. 1 = orders pending. 2 = orders open.
-	OrdersClosedChan := make(chan int)
-	OrdersPendingChan := make(chan int)
-	OrdersOpenChan := make(chan int)
+	OrdersStatusChan := make(chan int)
+	var wg sync.WaitGroup
+
+	wg.Add(2)
+	go r.CheckConditions("instrument string", "units string", OrdersStatusChan)
+	go r.CheckOrder(r.RaiderStatus, OrdersStatusChan)
+	wg.Wait()
 
 	for {
 		select {
-		case r.RaiderStatus = <-OrdersClosedChan:
-			CheckConditions(instrument, units, )
-		case r.RaiderStatus = <-OrdersPendingChan:
-			oanda.CheckOrder(r.OrderID)
-		case r.RaiderStatus = <-OrdersOpenChan:
-			oanda.CheckOrder(r.OrderID)
+		case r.RaiderStatus = <-OrdersChan:
+			fmt.Println("received: ", r.RaiderStatus)
+		default:
+			fmt.Println("no data...")
 		}
 	}
-
 }
 
-func (r *Raider) CheckConditions(instrument string, units string, OrdersClosedChan chan) {
-	fmt.Println("CheckConditions")
+func (r *Raider) CheckConditions(instrument string, units string, OrdersStatusChan chan int) {
+	fmt.Println("Checking Conditions...")
+	time.Sleep(1 * time.Second)
+	OrdersChan <- 0
+	trade := 0
 
+	//checks bollinger band execute signal
+	go r.ExecuteBB(instrument, units)
+
+	for OrderStatus := range OrdersStatusChan {
+		if OrderStatus == 1 {
+			r.RaiderStatus = 1
+		}
+	}
 }
 
-//ExecuteRaider executes the Raider trading algorithm
-func ExecuteRaider(instrument string, units string) {
+//ExecuteBB executes the Raider trading algorithm
+func (r *Raider) ExecuteBB(instrument string, units string) {
 	bb := BollingerBand{}.Init(instrument, "20", "D")
 	openTrade := 0
 
 	//anonymous go func executing concurrently to update bb everyday at midnight
-	//link to good time example becasue this has not been tested
-	//http://www.golangprograms.com/get-year-month-day-hour-min-and-second-from-current-date-and-time.html
 	wg.Add(1)
 	go func() {
 		for {
@@ -85,7 +95,8 @@ func ExecuteRaider(instrument string, units string) {
 		fmt.Println(RaiderRecon)
 
 		//calls to marshaling the order data and submiting order to Oanda
-		if RaiderRecon.ExecuteOrder != 1 {
+		//need to send over r.RaiderStatus and OrderID
+		if RaiderRecon.ExecuteOrder == 1 && r.RaiderStatus == 0 {
 			RaiderRecon.Orders.OrderData.Units = units
 
 			//creating []byte order data for the order HTTP body
@@ -106,21 +117,23 @@ func ExecuteRaider(instrument string, units string) {
 			//accessing the orderID field and saving it to a variable
 			orderID := orderCreateTransaction.OrderFillTransaction.OrderID
 
-			//using the orderID to check the order status
-			checkOrderByte, err := oanda.CheckOrder(orderID)
-
-			//checking the the CheckOrder error
-			if err != nil {
-				log.Println(err)
-			}
-
-			fmt.Println("Check Order Response:")
-			fmt.Println(string(checkOrderByte))
+			//sending new r.RaiderStatus and setting OrderID
+			OrderIDChan <- 1
+			r.OrderID
 
 		}
 		wg.Wait()
 	}
 
+}
+
+func (r *Raider) CheckOrder() {
+	//using the orderID to check the order status
+	for {
+		if r.RaiderStatus == 1 {
+			checkOrderByte, err := oanda.CheckOrder(r.OrderID)
+		}
+	}
 }
 
 //RaiderRecon contains order data and the execute order decision
