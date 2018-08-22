@@ -50,10 +50,6 @@ func (r Raider) Init(instrument string, units string) {
 
 func (r *Raider) CheckConditions(instrument string, units string, OrdersStatusChan chan int) {
 	fmt.Println("Checking Conditions...")
-	time.Sleep(1 * time.Second)
-	OrdersChan <- 0
-	trade := 0
-
 	//checks bollinger band execute signal
 	go r.ExecuteBB(instrument, units)
 
