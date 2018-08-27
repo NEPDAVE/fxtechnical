@@ -48,6 +48,7 @@ func (r Raider) Init(instrument string, units string) {
 	wg.Wait()
 }
 
+//CheckConditions checks if the..?
 func (r *Raider) CheckConditions(instrument string, units string, OrdersStatusChan chan int) {
 	fmt.Println("Checking Conditions...")
 	//checks bollinger band execute signal
@@ -123,6 +124,7 @@ func (r *Raider) ExecuteBB(instrument string, units string, OrdersStatusChan cha
 
 }
 
+//CheckOrder used an OrderID to get the latest order status
 func (r *Raider) CheckOrder() {
 	//using the orderID to check the order status
 	for {
