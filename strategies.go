@@ -31,7 +31,8 @@ func (r Raider) Init(instrument string, units string) {
 	OrdersStatusChan := make(chan int)
 	var wg sync.WaitGroup
 
-	wg.Add(2)
+	wg.Add(3)
+	go r.ExecuteBB(instrument, units, OrdersStatusChan)
 	go r.CheckConditions("instrument string", "units string", OrdersStatusChan)
 	go r.CheckOrder()
 
@@ -52,7 +53,7 @@ func (r Raider) Init(instrument string, units string) {
 func (r *Raider) CheckConditions(instrument string, units string, OrdersStatusChan chan int) {
 	fmt.Println("Checking Conditions...")
 	//checks bollinger band execute signal
-	go r.ExecuteBB(instrument, units, OrdersStatusChan)
+
 
 	for OrderStatus := range OrdersStatusChan {
 		if OrderStatus == 1 {
