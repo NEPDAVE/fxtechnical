@@ -20,6 +20,7 @@ Raider is a trading algorithm that implements the Bolinger Band indicator
 
 //Raider holds the algo state and current OrderID
 type Raider struct {
+	mu sync.Mutex
 	RaiderStatus int //0 = orders closed. 1 = order submitted. 2 = orders open.
 	OrderID      string
 }
@@ -27,20 +28,30 @@ type Raider struct {
 //Init kicks off the select pattern to check on raider status
 func (r Raider) Init(instrument string, units string) {
 
-	//0 = orders closed. 1 = orders pending. 2 = orders open.
-	OrdersStatusChan := make(chan int)
+  //Takes
+	RaiderReconChan := make(chan RaiderRecon)
 	var wg sync.WaitGroup
 
 	wg.Add(3)
-	go r.ExecuteBB(instrument, units, OrdersStatusChan)
+	go r.ExecuteBB(instrument, units, RaiderReconChan)
 	go r.CheckConditions("instrument string", "units string", OrdersStatusChan)
 	go r.CheckOrder()
-
+  /*
+  the three goroutines should still send a value of the channel
+	this will make each of them more modular. you can then init
+	use the value sent over the channel to and pass it to CheckConditions
+	which is a func that checks the current RaiderStatus and decides
+	whether or not to submit the order and get the new order ID.
+	*/
 
 	for {
 		select {
-		case r.RaiderStatus = <-OrdersStatusChan:
-			fmt.Println("received: ", r.RaiderStatus)
+		case raiderRecon = <-RaiderRecon:
+			fmt.Println("Received create order signal...")
+			if RaiderStatus == 0 {
+				fmt.Println("Verifying ...")
+					CheckConditions()
+				}
 		default:
 			fmt.Println("no data...")
 		}
@@ -49,8 +60,8 @@ func (r Raider) Init(instrument string, units string) {
 	wg.Wait()
 }
 
-//CheckConditions checks if the..?
-func (r *Raider) CheckConditions(instrument string, units string, OrdersStatusChan chan int) {
+//CheckConditions updates RaiderStatus and submits/creates the orders
+func (r *Raider) CheckConditions(instrument string, units string) {
 	fmt.Println("Checking Conditions...")
 	//checks bollinger band execute signal
 
@@ -63,7 +74,7 @@ func (r *Raider) CheckConditions(instrument string, units string, OrdersStatusCh
 }
 
 //ExecuteBB executes the Raider trading algorithm
-func (r *Raider) ExecuteBB(instrument string, units string, OrdersStatusChan chan int) {
+func (r *Raider) ExecuteBB(instrument string, units string, RaiderReconChan chan RaiderRecon) {
 	bb := BollingerBand{}.Init(instrument, "20", "D")
 	var wg sync.WaitGroup
 
@@ -78,7 +89,7 @@ func (r *Raider) ExecuteBB(instrument string, units string, OrdersStatusChan cha
 		}
 	}()
 
-	RaiderReconChan := make(chan RaiderRecon)
+
 	//FIXME where do we really want to set the number of units?
 	wg.Add(1)
 	go RaiderRecon{}.ContinuousRaid(bb, units, RaiderReconChan)
@@ -94,7 +105,10 @@ func (r *Raider) ExecuteBB(instrument string, units string, OrdersStatusChan cha
 
 		//calls to marshaling the order data and submiting order to Oanda
 		//need to send over r.RaiderStatus and OrderID
-		if RaiderRecon.ExecuteOrder == 1 && r.RaiderStatus == 0 {
+		if RaiderRecon.ExecuteOrder == 1 {
+			//sending current create/submit order code over channel
+			BBStatusChan <- RaiderRecon
+		}
 			RaiderRecon.Orders.OrderData.Units = units
 
 			//creating []byte order data for the order HTTP body
@@ -115,8 +129,7 @@ func (r *Raider) ExecuteBB(instrument string, units string, OrdersStatusChan cha
 			//accessing the orderID field and saving it to a variable
 			orderID := orderCreateTransaction.OrderFillTransaction.OrderID
 
-			//sending new r.RaiderStatus and setting OrderID
-			OrdersStatusChan <- 1
+
 			r.OrderID = orderID
 
 		}
