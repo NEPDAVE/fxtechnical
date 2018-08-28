@@ -32,6 +32,7 @@ type Raider struct {
 func (r Raider) Init(instrument string, units string) {
 
 	RaiderChan := make(chan Raider)
+	CheckOrderChan := make(chan string)
 	var wg sync.WaitGroup
 
 	wg.Add(2)
@@ -62,6 +63,12 @@ func (r Raider) Init(instrument string, units string) {
 				r.OrderID = ExecuteOrder(instrument, units, raider)
 				mu.Unlock()
 			}
+		//FIXME
+		case orderStatus := <-CheckOrderChan:
+			mu.Lock()
+			r.Status = 2
+			mu.Unlock()
+
 
 		default:
 			fmt.Println("no data...")
