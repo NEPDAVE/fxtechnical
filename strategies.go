@@ -20,24 +20,25 @@ Raider is a trading algorithm that implements the Bolinger Band indicator
 
 //Raider holds the algo state and neccesary algo data
 type Raider struct {
-	mu              sync.Mutex
+	//mu              sync.Mutex
 	Status          int          //0 = orders closed. 1 = order submitted. 2 = orders open.
 	OrderID         string       //OrderID of current submitted/filled order
-	Orders          oanda.Orders //Order data
+	Orders          oanda.Orders //Order data neccessary for creating/submitting an order
 	CreateOrderCode int          //1 = execute order. 0 = don't execute order
 	Error           error
 }
 
-//Init kicks off the select pattern to check on raider status
+//Init kicks off the select pattern to create orders and check orders
 func (r Raider) Init(instrument string, units string) {
+	var wg sync.WaitGroup
+	var mu sync.Mutex
 
 	RaiderChan := make(chan Raider)
-	CheckOrderChan := make(chan string)
-	var wg sync.WaitGroup
+	CheckOrderChan := make(chan int)
 
 	wg.Add(2)
 	go r.ContinuousRaid(instrument, RaiderChan)
-	go r.CheckOrder()
+	go r.CheckOrder(CheckOrderChan)
 
 	/*
 		  the two goroutines should still send a value of the channel
@@ -51,39 +52,50 @@ func (r Raider) Init(instrument string, units string) {
 		select {
 		case raider := <-RaiderChan:
 
-			if Raider.Error != nil {
-				log.Println(Raider.Error)
+			if raider.Error != nil {
+				log.Println(raider.Error)
 				continue
 			}
 
-			if raider.CreateOrderCode == 1 && raider.Status == 0 {
+			if r.CreateOrderCode == 1 && r.Status == 0 {
 				fmt.Println("received create order signal...")
 				mu.Lock()
 				r.Status = 1
-				r.OrderID = ExecuteOrder(instrument, units, raider)
 				mu.Unlock()
+				r.OrderID = r.ExecuteOrder(instrument, units, raider)
+			} else {
+				fmt.Println(raider)
 			}
-		//FIXME
+		//FIXME need to make sure you understand the checkOrder data structures
 		case orderStatus := <-CheckOrderChan:
-			mu.Lock()
-			r.Status = 2
-			mu.Unlock()
-
-
-		default:
-			fmt.Println("no data...")
+			if orderStatus == 0 {
+				mu.Lock()
+				r.Status = 0
+				mu.Unlock()
+				fmt.Printf("order %s = closed", r.OrderID)
+			} else if orderStatus == 1 {
+				fmt.Printf("order %s = pending", r.OrderID)
+			} else if orderStatus == 2 {
+				mu.Lock()
+				r.Status = 2
+				mu.Unlock()
+				fmt.Printf("order %s = open", r.OrderID)
+			}
+		// default:
+		// 	fmt.Println("no data...")
+		// 	fmt.Println(r.Orders)
 		}
 	}
 
 	wg.Wait()
 }
 
-//ExecuteOrder submits and creates the order
+//ExecuteOrder sets the number of units to trade then submits/creates the order
 func (r *Raider) ExecuteOrder(instrument string, units string, raider Raider) string {
-	Raider.Orders.OrderData.Units = units
+	r.Orders.OrderData.Units = units
 
 	//creating []byte order data for the order HTTP body
-	ordersByte := oanda.MarshalOrders(Raider.Orders)
+	ordersByte := oanda.MarshalOrders(r.Orders)
 
 	//creating/submiting the order to oanda
 	createOrderByte, err := oanda.CreateOrder(ordersByte)
@@ -101,22 +113,20 @@ func (r *Raider) ExecuteOrder(instrument string, units string, raider Raider) st
 	orderID := orderCreateTransaction.OrderFillTransaction.OrderID
 
 	return orderID
-	wg.Wait()
-
 }
 
 //CheckOrder used an OrderID to get the latest order status
-func (r *Raider) CheckOrder() {
+func (r *Raider) CheckOrder(CheckOrderChan chan int) {
 	//using the orderID to check the order status
 	for {
-		if r.Status == 1 {
-			checkOrderByte, err := oanda.CheckOrder(r.OrderID)
-			if err != nil {
-				fmt.Println(err)
-			}
-			fmt.Println("check order byte:")
-			fmt.Println(checkOrderByte)
+		checkOrderByte, err := oanda.CheckOrder(r.OrderID)
+		if err != nil {
+			fmt.Println(err)
 		}
+		fmt.Println(string(checkOrderByte))
+		//FIXME need to have call to unmarshaling checkOrderByte
+		//and way to see/check whether the order is close/pending/open
+		CheckOrderChan <- 0
 	}
 }
 
@@ -163,9 +173,7 @@ func (r Raider) SingleRaid(bb BollingerBand, units string) Raider {
 
 //ContinuousRaid ranges over a channel of PricesData comparing each PricesData to a
 //BollingerBand and sends a trading decision over a channel to the caller
-//FIXME if running this function coninuosly be careful to generate a new
-//bollinger band at the start of each day
-func (r Raider) ContinuousRaid(instrument, out chan Raider) {
+func (r Raider) ContinuousRaid(instrument string, out chan Raider) {
 	bb := BollingerBand{}.Init(instrument, "20", "D")
 	var wg sync.WaitGroup
 
@@ -201,24 +209,21 @@ func (r Raider) ContinuousRaid(instrument, out chan Raider) {
 			out <- Raider{
 				Orders: oanda.Orders{}.MarketSellOrder(pricesData.Bid,
 					pricesData.Ask,
-					bb.Instrument,
-					units),
+					bb.Instrument, "0"),
 				CreateOrderCode: 1,
 			}
 		} else if pricesData.Ask < bb.LowerBand {
 			out <- Raider{
 				Orders: oanda.Orders{}.MarketBuyOrder(pricesData.Bid,
 					pricesData.Ask,
-					bb.Instrument,
-					units),
+					bb.Instrument, "0"),
 				CreateOrderCode: 1,
 			}
 		} else {
 			out <- Raider{
 				Orders: oanda.Orders{}.MarketBuyOrder(pricesData.Bid,
 					pricesData.Ask,
-					bb.Instrument,
-					units),
+					bb.Instrument, "0"),
 				CreateOrderCode: 0,
 			}
 		}
