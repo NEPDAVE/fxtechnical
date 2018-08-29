@@ -20,12 +20,11 @@ Raider is a trading algorithm that implements the Bolinger Band indicator
 
 //Raider holds the algo state and neccesary algo data
 type Raider struct {
-	//mu              sync.Mutex
-	Status          int          //0 = orders closed. 1 = order submitted. 2 = orders open.
-	OrderID         string       //OrderID of current submitted/filled order
-	Orders          oanda.Orders //Order data neccessary for creating/submitting an order
-	CreateOrderCode int          //1 = execute order. 0 = don't execute order
-	Error           error
+	Status  int          //0 = orders closed. 1 = order submitted. 2 = orders open.
+	OrderID string       //OrderID of current submitted/filled order
+	Orders  oanda.Orders //Order data neccessary for creating/submitting an order
+	//CreateOrderCode int          //1 = execute order. 0 = don't execute order
+	Error error
 }
 
 //Init kicks off the select pattern to create orders and check orders
@@ -64,7 +63,8 @@ func (r Raider) Init(instrument string, units string) {
 				mu.Unlock()
 				r.OrderID = r.ExecuteOrder(instrument, units, raider)
 			} else {
-				fmt.Println(raider)
+				//fmt.Println(raider)
+				fmt.Println("...")
 			}
 		//FIXME need to make sure you understand the checkOrder data structures
 		case orderStatus := <-CheckOrderChan:
@@ -81,10 +81,12 @@ func (r Raider) Init(instrument string, units string) {
 				mu.Unlock()
 				fmt.Printf("order %s = open", r.OrderID)
 			}
-		// default:
-		// 	fmt.Println("no data...")
-		// 	fmt.Println(r.Orders)
+			// default:
+			// 	fmt.Println("no data...")
+			// 	fmt.Println(r.Orders)
 		}
+		fmt.Println("")
+		fmt.Println("")
 	}
 
 	wg.Wait()
@@ -130,45 +132,34 @@ func (r *Raider) CheckOrder(CheckOrderChan chan int) {
 	}
 }
 
-//SingleRaid compares a single PricesData to a BollingerBand and returns a trading decision
-func (r Raider) SingleRaid(bb BollingerBand, units string) Raider {
-	//initializing pricesData struct
-	pricesData := PricesData{}.Init(bb.Instrument)
+//SingleRaid compares a single PricesData to a BollingerBand and returns Orders
+//and the CreateOrderCode. 1 = execute order, 0 = don't execute order
+func (r Raider) SingleRaid(instrument string) (oanda.Orders, int) {
+	bb := BollingerBand{}.Init(instrument, "20", "D")
+	pricesData := PricesData{}.Init(instrument)
 
 	if pricesData.Error != nil {
-		return Raider{Error: pricesData.Error}
+		log.Println(pricesData.Error)
+		return oanda.Orders{}, 0
 	}
 
-	//calling CalculateSpread also sets bid/ask fields in struct
-	//pricesData.CalculateSpread()
-
-	//FIXME need to have better error handling here
+  //setting all units to 0 here so that proper amount of units can be set later
 	if pricesData.Bid > bb.UpperBand {
-		return Raider{
-			Orders: oanda.Orders{}.MarketSellOrder(pricesData.Bid,
-				pricesData.Ask,
-				bb.Instrument,
-				units),
-			CreateOrderCode: 1,
-		}
+		return oanda.Orders{}.MarketSellOrder(pricesData.Bid,
+			pricesData.Ask,
+			bb.Instrument,
+			"0"), 1
 	} else if pricesData.Ask < bb.LowerBand {
-		return Raider{
-			Orders: oanda.Orders{}.MarketBuyOrder(pricesData.Bid,
-				pricesData.Ask,
-				bb.Instrument,
-				units),
-			CreateOrderCode: 1,
-		}
+		return oanda.Orders{}.MarketBuyOrder(pricesData.Bid,
+			pricesData.Ask,
+			bb.Instrument,
+			"0"), 1
 	} else {
-		return Raider{
-			Orders: oanda.Orders{}.MarketBuyOrder(pricesData.Bid,
-				pricesData.Ask,
-				bb.Instrument,
-				units),
-			CreateOrderCode: 0,
-		}
+		return oanda.Orders{}.MarketBuyOrder(pricesData.Bid,
+			pricesData.Ask,
+			bb.Instrument,
+			"0"), 0
 	}
-
 }
 
 //ContinuousRaid ranges over a channel of PricesData comparing each PricesData to a
