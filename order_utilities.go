@@ -4,8 +4,6 @@ import (
 	"fmt"
 	oanda "github.com/nepdave/oanda"
 	"log"
-	"sync"
-	"time"
 )
 
 /*
@@ -13,15 +11,22 @@ General flow
 PrepareOrder()
 CreateOrder()
 GetOrderID()
-CheckOrder()
+GetOrderStatus()
 */
+
+//OrderUtilities is a collection of method signatures
+type OrderUtilities interface {
+	ExecuteOrder()
+	GetOrderStatus()
+	ContinuousGetOrderStatus()
+}
 
 //ExecuteOrder sets the number of units to trade then creates the order
 func ExecuteOrder(instrument string, units string, raider Raider) string {
-	r.Orders.OrderData.Units = units
+	raider.Orders.OrderData.Units = units
 
 	//creating []byte order data for the order HTTP body
-	ordersByte := oanda.MarshalOrders(r.Orders)
+	ordersByte := oanda.MarshalOrders(raider.Orders)
 
 	//creating/submiting the order to oanda
 	createOrderByte, err := oanda.CreateOrder(ordersByte)
@@ -41,39 +46,48 @@ func ExecuteOrder(instrument string, units string, raider Raider) string {
 	return orderID
 }
 
-//CheckOrder used an OrderID to get the latest order status
-func CheckOrder(OrderID string) string {
+//GetOrderStatus uses an OrderID to get the latest order status
+func GetOrderStatus(OrderID string) string {
 	//using the orderID to check the order status
-	for {
-		checkOrderByte, err := oanda.CheckOrder(r.OrderID)
-		if err != nil {
-			fmt.Println(err)
-		}
-		fmt.Println("")
-		fmt.Println("STRING CHECK ORDER BYTE:")
-		fmt.Println(string(checkOrderByte))
-		fmt.Println("")
-		//FIXME need to have call to unmarshaling checkOrderByte
-		//and way to see/check whether the order is close/pending/open
-		status := "closed/pending/open"
-		return status
+	getOrderStatusByte, err := oanda.GetOrderStatus(OrderID)
+	if err != nil {
+		fmt.Println(err)
 	}
+	// fmt.Println("")
+	// fmt.Println("STRING CHECK ORDER BYTE:")
+	// fmt.Println(string(GetOrderStatusByte))
+	// fmt.Println("")
+	//FIXME this is assuming the order we want is the 0 element in the list
+	state := oanda.OrderStatus{}.UnmarshalOrderStatus(getOrderStatusByte).OrderStatusData[0].State
+	fmt.Println("")
+	fmt.Println("")
+	fmt.Println("STATE:")
+	fmt.Println(state)
+	fmt.Println("")
+	fmt.Println("")
+	return state
 }
 
-//ContinuousCheckOrder uses an OrderID to continuously get the latest order status
-func ContinuousCheckOrder(CheckOrderChan chan string) {
+//ContinuousGetOrderStatus uses an OrderID to continuously get the latest order status
+func ContinuousGetOrderStatus(orderID string, GetOrderStatusChan chan string) {
 	//using the orderID to check the order status
 	for {
-		checkOrderByte, err := oanda.CheckOrder(r.OrderID)
+		getOrderStatusByte, err := oanda.GetOrderStatus(orderID)
 		if err != nil {
 			fmt.Println(err)
 		}
+		// fmt.Println("")
+		// fmt.Println("STRING CHECK ORDER BYTE:")
+		// fmt.Println(string(GetOrderStatusByte))
+		// fmt.Println("")
+		//FIXME this is assuming the order we want is the 0 element in the list
+		state := oanda.OrderStatus{}.UnmarshalOrderStatus(getOrderStatusByte).OrderStatusData[0].State
 		fmt.Println("")
-		fmt.Println("STRING CHECK ORDER BYTE:")
-		fmt.Println(string(checkOrderByte))
 		fmt.Println("")
-		//FIXME need to have call to unmarshaling checkOrderByte
-		//and way to see/check whether the order is close/pending/open
-		CheckOrderChan <- "closed/pending/open"
+		fmt.Println("STATE:")
+		fmt.Println(state)
+		fmt.Println("")
+		fmt.Println("")
+		GetOrderStatusChan <- state
 	}
 }

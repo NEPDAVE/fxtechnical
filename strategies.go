@@ -20,7 +20,8 @@ type Raider struct {
 	CreateOrderCode int          //0 = dont execute 1 = execute
 	OrderID         string       //OrderID of current order
 	Orders          oanda.Orders //Order SL/TP Limit/Market data
-	Error           error
+	OrderUtilities
+	Error error
 }
 
 /*
@@ -37,13 +38,14 @@ func (r Raider) Init(instrument string, units string) {
 	var mu sync.Mutex
 
 	RaiderChan := make(chan Raider)
-	CheckOrderChan := make(chan string)
+	GetOrderStatusChan := make(chan string)
 
 	wg.Add(2)
 	//Checks whether or not conditions are right to trade
 	go r.ContinuousRaid(instrument, RaiderChan)
 	//Checks whether orders are close, pending, or open
-	go r.ContinuousCheckOrder(CheckOrderChan)
+	go ContinuousGetOrderStatus(r.OrderID, GetOrderStatusChan)
+	wg.Wait()
 
 	for {
 		select {
@@ -59,7 +61,7 @@ func (r Raider) Init(instrument string, units string) {
 				mu.Lock()
 				//doing exspensive IO calls but need to verify OrderStatus before assigning
 				r.OrderID = ExecuteOrder(instrument, units, raider)
-				r.OrderStatus = CheckOrder(r.OrderID)
+				r.OrderStatus = GetOrderStatus(r.OrderID)
 				r.OrderStatus = "pending"
 				mu.Unlock()
 			} else {
@@ -67,7 +69,7 @@ func (r Raider) Init(instrument string, units string) {
 				fmt.Println("...")
 			}
 		//FIXME need to make sure you understand the checkOrder data structures
-		case r.OrderStatus = <-CheckOrderChan:
+		case r.OrderStatus = <-GetOrderStatusChan:
 			if r.OrderStatus == "closed" {
 				mu.Lock()
 				r.OrderStatus = "closed"
@@ -89,9 +91,8 @@ func (r Raider) Init(instrument string, units string) {
 		fmt.Println("")
 	}
 
-	wg.Wait()
-}
 
+}
 
 //SingleRaid compares a single PricesData to a BollingerBand and returns Orders
 //and the CreateOrderCode. 1 = execute order, 0 = don't execute order
