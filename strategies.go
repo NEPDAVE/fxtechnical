@@ -23,6 +23,14 @@ type Raider struct {
 	Error           error
 }
 
+/*
+General flow
+PrepareOrder()
+CreateOrder()
+GetOrderID()
+CheckOrder()
+*/
+
 //Init kicks off the select pattern to create orders and check orders
 func (r Raider) Init(instrument string, units string) {
 	var wg sync.WaitGroup
@@ -50,8 +58,8 @@ func (r Raider) Init(instrument string, units string) {
 				fmt.Println("received create order signal...")
 				mu.Lock()
 				//doing exspensive IO calls but need to verify OrderStatus before assigning
-				r.OrderID = r.ExecuteOrder(instrument, units, raider)
-				r.OrderStatus = r.CheckOrder(r.OrderID)
+				r.OrderID = ExecuteOrder(instrument, units, raider)
+				r.OrderStatus = CheckOrder(r.OrderID)
 				r.OrderStatus = "pending"
 				mu.Unlock()
 			} else {
@@ -64,14 +72,14 @@ func (r Raider) Init(instrument string, units string) {
 				mu.Lock()
 				r.OrderStatus = "closed"
 				mu.Unlock()
-				fmt.Printf("order %s = closed", r.OrderID)
+				//fmt.Printf("order %s = closed", r.OrderID)
 			} else if r.OrderStatus == "pending" {
-				fmt.Printf("order %s = pending", r.OrderID)
+				//fmt.Printf("order %s = pending", r.OrderID)
 			} else if r.OrderStatus == "open" {
 				mu.Lock()
 				r.OrderStatus = "open"
 				mu.Unlock()
-				fmt.Printf("order %s = open", r.OrderID)
+				//fmt.Printf("order %s = open", r.OrderID)
 			}
 			// default:
 			// 	fmt.Println("no data...")
@@ -84,61 +92,6 @@ func (r Raider) Init(instrument string, units string) {
 	wg.Wait()
 }
 
-//ExecuteOrder sets the number of units to trade then submits/creates the order
-func (r *Raider) ExecuteOrder(instrument string, units string, raider Raider) string {
-	r.Orders.OrderData.Units = units
-
-	//creating []byte order data for the order HTTP body
-	ordersByte := oanda.MarshalOrders(r.Orders)
-
-	//creating/submiting the order to oanda
-	createOrderByte, err := oanda.CreateOrder(ordersByte)
-
-	//checking CreateOrder error
-	if err != nil {
-		log.Println(err)
-	}
-
-	//unmarshaling the returned createOrderByte into a native struct
-	orderCreateTransaction := oanda.OrderCreateTransaction{}.
-		UnmarshalOrderCreateTransaction(createOrderByte)
-
-	//accessing the orderID field and saving it to a variable
-	orderID := orderCreateTransaction.OrderFillTransaction.OrderID
-
-	return orderID
-}
-
-//CheckOrder used an OrderID to get the latest order status
-func (r *Raider) CheckOrder(OrderID string) string {
-	//using the orderID to check the order status
-	for {
-		checkOrderByte, err := oanda.CheckOrder(r.OrderID)
-		if err != nil {
-			fmt.Println(err)
-		}
-		fmt.Println(string(checkOrderByte))
-		//FIXME need to have call to unmarshaling checkOrderByte
-		//and way to see/check whether the order is close/pending/open
-		status := "closed/pending/open"
-		return status
-	}
-}
-
-//ContinuousCheckOrder uses an OrderID to continuously get the latest order status
-func (r *Raider) ContinuousCheckOrder(CheckOrderChan chan string) {
-	//using the orderID to check the order status
-	for {
-		checkOrderByte, err := oanda.CheckOrder(r.OrderID)
-		if err != nil {
-			fmt.Println(err)
-		}
-		fmt.Println(string(checkOrderByte))
-		//FIXME need to have call to unmarshaling checkOrderByte
-		//and way to see/check whether the order is close/pending/open
-		CheckOrderChan <- "closed/pending/open"
-	}
-}
 
 //SingleRaid compares a single PricesData to a BollingerBand and returns Orders
 //and the CreateOrderCode. 1 = execute order, 0 = don't execute order
@@ -172,7 +125,7 @@ func (r Raider) SingleRaid(instrument string) (oanda.Orders, int) {
 
 //ContinuousRaid ranges over a channel of PricesData comparing each PricesData to a
 //BollingerBand and sends a trading decision over a channel to the caller
-func (r Raider) ContinuousRaid(instrument string, out chan Raider) {
+func (r Raider) ContinuousRaid(instrument string, RaiderChan chan Raider) {
 	bb := BollingerBand{}.Init(instrument, "20", "D")
 	var wg sync.WaitGroup
 
@@ -192,7 +145,7 @@ func (r Raider) ContinuousRaid(instrument string, out chan Raider) {
 
 	for pricesData := range oandaChan {
 		if pricesData.Error != nil {
-			out <- Raider{Error: pricesData.Error}
+			RaiderChan <- Raider{Error: pricesData.Error}
 		}
 
 		if pricesData.Heartbeat != nil {
@@ -200,26 +153,22 @@ func (r Raider) ContinuousRaid(instrument string, out chan Raider) {
 			continue
 		}
 
-		//print prices data
-		//fmt.Println(pricesData)
-
-		//FIXME need to have better error handling here
 		if pricesData.Bid > bb.UpperBand {
-			out <- Raider{
+			RaiderChan <- Raider{
 				Orders: oanda.Orders{}.MarketSellOrder(pricesData.Bid,
 					pricesData.Ask,
 					bb.Instrument, "0"),
 				CreateOrderCode: 1,
 			}
 		} else if pricesData.Ask < bb.LowerBand {
-			out <- Raider{
+			RaiderChan <- Raider{
 				Orders: oanda.Orders{}.MarketBuyOrder(pricesData.Bid,
 					pricesData.Ask,
 					bb.Instrument, "0"),
 				CreateOrderCode: 1,
 			}
 		} else {
-			out <- Raider{
+			RaiderChan <- Raider{
 				Orders: oanda.Orders{}.MarketBuyOrder(pricesData.Bid,
 					pricesData.Ask,
 					bb.Instrument, "0"),
