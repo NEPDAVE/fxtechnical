@@ -3,14 +3,10 @@ package fxtechnical
 import (
 	"fmt"
 	oanda "github.com/nepdave/oanda"
-	// twilio "github.com/nepdave/twilio"
 	"log"
 	"sync"
 	"time"
 )
-
-//trying to figure out select stuff
-//https://play.golang.org/p/HrPk4uEO2tS
 
 /*
 ***************************
@@ -20,11 +16,11 @@ Raider is a trading algorithm that implements the Bolinger Band indicator
 
 //Raider holds the algo state and neccesary algo data
 type Raider struct {
-	Status  int          //0 = orders closed. 1 = order submitted. 2 = orders open.
-	OrderID string       //OrderID of current submitted/filled order
-	Orders  oanda.Orders //Order data neccessary for creating/submitting an order
-	//CreateOrderCode int          //1 = execute order. 0 = don't execute order
-	Error error
+	OrderStatus     string       //closed/pending/open.
+	CreateOrderCode int          //0 = dont execute 1 = execute
+	OrderID         string       //OrderID of current order
+	Orders          oanda.Orders //Order SL/TP Limit/Market data
+	Error           error
 }
 
 //Init kicks off the select pattern to create orders and check orders
@@ -33,19 +29,13 @@ func (r Raider) Init(instrument string, units string) {
 	var mu sync.Mutex
 
 	RaiderChan := make(chan Raider)
-	CheckOrderChan := make(chan int)
+	CheckOrderChan := make(chan string)
 
 	wg.Add(2)
+	//Checks whether or not conditions are right to trade
 	go r.ContinuousRaid(instrument, RaiderChan)
-	go r.CheckOrder(CheckOrderChan)
-
-	/*
-		  the two goroutines should still send a value of the channel
-			this will make each of them more modular. you can then init
-			use the value sent over the channel to and pass it to CheckConditions
-			which is a func that checks the current Status and decides
-			whether or not to submit the order and get the new order ID.
-	*/
+	//Checks whether orders are close, pending, or open
+	go r.ContinuousCheckOrder(CheckOrderChan)
 
 	for {
 		select {
@@ -56,28 +46,30 @@ func (r Raider) Init(instrument string, units string) {
 				continue
 			}
 
-			if r.CreateOrderCode == 1 && r.Status == 0 {
+			if r.CreateOrderCode == 1 && r.OrderStatus == "closed" {
 				fmt.Println("received create order signal...")
 				mu.Lock()
-				r.Status = 1
-				mu.Unlock()
+				//doing exspensive IO calls but need to verify OrderStatus before assigning
 				r.OrderID = r.ExecuteOrder(instrument, units, raider)
+				r.OrderStatus = r.CheckOrder(r.OrderID)
+				r.OrderStatus = "pending"
+				mu.Unlock()
 			} else {
 				//fmt.Println(raider)
 				fmt.Println("...")
 			}
 		//FIXME need to make sure you understand the checkOrder data structures
-		case orderStatus := <-CheckOrderChan:
-			if orderStatus == 0 {
+		case r.OrderStatus = <-CheckOrderChan:
+			if r.OrderStatus == "closed" {
 				mu.Lock()
-				r.Status = 0
+				r.OrderStatus = "closed"
 				mu.Unlock()
 				fmt.Printf("order %s = closed", r.OrderID)
-			} else if orderStatus == 1 {
+			} else if r.OrderStatus == "pending" {
 				fmt.Printf("order %s = pending", r.OrderID)
-			} else if orderStatus == 2 {
+			} else if r.OrderStatus == "open" {
 				mu.Lock()
-				r.Status = 2
+				r.OrderStatus = "open"
 				mu.Unlock()
 				fmt.Printf("order %s = open", r.OrderID)
 			}
@@ -118,7 +110,7 @@ func (r *Raider) ExecuteOrder(instrument string, units string, raider Raider) st
 }
 
 //CheckOrder used an OrderID to get the latest order status
-func (r *Raider) CheckOrder(CheckOrderChan chan int) {
+func (r *Raider) CheckOrder(OrderID string) string {
 	//using the orderID to check the order status
 	for {
 		checkOrderByte, err := oanda.CheckOrder(r.OrderID)
@@ -128,7 +120,23 @@ func (r *Raider) CheckOrder(CheckOrderChan chan int) {
 		fmt.Println(string(checkOrderByte))
 		//FIXME need to have call to unmarshaling checkOrderByte
 		//and way to see/check whether the order is close/pending/open
-		CheckOrderChan <- 0
+		status := "closed/pending/open"
+		return status
+	}
+}
+
+//ContinuousCheckOrder uses an OrderID to continuously get the latest order status
+func (r *Raider) ContinuousCheckOrder(CheckOrderChan chan string) {
+	//using the orderID to check the order status
+	for {
+		checkOrderByte, err := oanda.CheckOrder(r.OrderID)
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println(string(checkOrderByte))
+		//FIXME need to have call to unmarshaling checkOrderByte
+		//and way to see/check whether the order is close/pending/open
+		CheckOrderChan <- "closed/pending/open"
 	}
 }
 
@@ -143,7 +151,7 @@ func (r Raider) SingleRaid(instrument string) (oanda.Orders, int) {
 		return oanda.Orders{}, 0
 	}
 
-  //setting all units to 0 here so that proper amount of units can be set later
+	//setting all units to 0 here so that proper amount of units can be set later
 	if pricesData.Bid > bb.UpperBand {
 		return oanda.Orders{}.MarketSellOrder(pricesData.Bid,
 			pricesData.Ask,
