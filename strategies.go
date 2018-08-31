@@ -48,11 +48,59 @@ func (r Raider) Init(instrument string, units string) {
 	//Checks whether orders are close, pending, or open
 	go r.Util.ContinuousGetOrderStatus(r.OrderID, GetOrderStateChan)
 
-	for {
-		select {
-		case raider := <-RaiderChan:
+	// for {
+	// 	select {
+	// 	case raider := <-RaiderChan:
+	//
+	// 		if raider.Error != nil {
+	// 			log.Println(raider.Error)
+	// 			continue
+	// 		}
+	//
+	// 		if raider.CreateOrderCode == 1 && r.OrderState == "closed" {
+	// 			fmt.Println("received create order signal...")
+	// 			mu.Lock()
+	// 			//doing exspensive IO calls but need to verify OrderState
+	// 			r.OrderID = r.Util.ExecuteOrder(instrument, units, raider)
+	// 			r.OrderState = r.Util.GetOrderStatus(r.OrderID)
+	// 			mu.Unlock()
+	// 		} else {
+	// 			fmt.Printf("Create Order Code = %d\n", raider.CreateOrderCode)
+	// 		}
+	// 	//FIXME need to make sure you understand the checkOrder data structures
+	// 	case r.OrderState = <-GetOrderStateChan:
+	// 		if r.OrderState == "closed" {
+	// 			mu.Lock()
+	// 			r.OrderState = "closed"
+	// 			mu.Unlock()
+	// 			fmt.Printf("ORDER-ID %s %s STATE = %s\n", r.OrderID, r.Instrument, r.OrderState)
+	// 		} else if r.OrderState == "pending" {
+	// 			fmt.Printf("ORDER-ID %s %s STATE = %s\n", r.OrderID, r.Instrument, r.OrderState)
+	// 		} else if r.OrderState == "open" {
+	// 			mu.Lock()
+	// 			r.OrderState = "open"
+	// 			mu.Unlock()
+	// 			fmt.Printf("ORDER-ID %s %s STATE = %s\n", r.OrderID, r.Instrument, r.OrderState)
+	// 		}
+	// 		// default:
+	// 		// 	fmt.Print("no data...")
+	// 		// // 	fmt.Println(r.Orders)
+	// 	}
+	// }
+	wg.Wait()
+}
 
-			if raider.Error != nil {
+//ExecuteContinuosRaid ranges over the RaiderChan to execute orders and update
+//Raider fields
+func (r Raider) ExecuteContinuosRaid(instrument string, RaiderChan chan Raider) {
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	//Checks whether or not conditions are right to trade
+	go r.ContinuousRaid(instrument, RaiderChan)
+
+	for raider := range RaiderChan {
+		if raider.Error != nil {
 				log.Println(raider.Error)
 				continue
 			}
@@ -67,34 +115,21 @@ func (r Raider) Init(instrument string, units string) {
 			} else {
 				fmt.Printf("Create Order Code = %d\n", raider.CreateOrderCode)
 			}
-		//FIXME need to make sure you understand the checkOrder data structures
-		case r.OrderState = <-GetOrderStateChan:
-			if r.OrderState == "closed" {
-				mu.Lock()
-				r.OrderState = "closed"
-				mu.Unlock()
-				fmt.Printf("ORDER-ID %s %s STATE = %s\n", r.OrderID, r.Instrument, r.OrderState)
-			} else if r.OrderState == "pending" {
-				fmt.Printf("ORDER-ID %s %s STATE = %s\n", r.OrderID, r.Instrument, r.OrderState)
-			} else if r.OrderState == "open" {
-				mu.Lock()
-				r.OrderState = "open"
-				mu.Unlock()
-				fmt.Printf("ORDER-ID %s %s STATE = %s\n", r.OrderID, r.Instrument, r.OrderState)
-			}
-			// default:
-			// 	fmt.Print("no data...")
-			// // 	fmt.Println(r.Orders)
 		}
-	}
-	wg.Wait()
+		wg.Wait()
 }
 
-// func (r Raider) ExecuteContinuosRaid(RaiderChan chan Raider) {
-// 	for raider := range RaiderChan {
-//
-// 	}
-// }
+//ExecuteContinuousGetOrderStatus ranges over the GetOrderStatusChan to update
+//the Raider Status field
+func (r Raider) ExecuteContinuousGetOrderStatus(GetOrderStateChan chan string) {
+
+	for {
+		mu.Lock()
+		r.OrderState = GetOrderStatus(r.OrderID)
+		mu.Unlock()
+		fmt.Printf("ORDER-ID %s %s STATE = %s\n", r.OrderID, r.Instrument, r.OrderState)
+	}
+}
 
 //SingleRaid compares a single PricesData to a BollingerBand and returns Orders
 //and the CreateOrderCode. 1 = execute order, 0 = don't execute order

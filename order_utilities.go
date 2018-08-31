@@ -59,19 +59,19 @@ func (o OrderUtilities) GetOrderStatus(OrderID string) string {
 	return state
 }
 
-//ContinuousGetOrderStatus uses an OrderID to continuously get the latest order status
-func (o OrderUtilities) ContinuousGetOrderStatus(orderID string, GetOrderStatusChan chan string) {
-	//using the orderID to check the order status
-	for {
-		getOrderStatusByte, err := oanda.GetOrderStatus(orderID)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-
-		orderStatus := oanda.OrderStatus{}.UnmarshalOrderStatus(getOrderStatusByte)
-		//FIXME this is assuming the order we want is the 0 element in the list
-		state := orderStatus.OrderStatusData[0].State
-		GetOrderStatusChan <- state
-	}
-}
+// //ContinuousGetOrderStatus uses an OrderID to continuously get the latest order status
+// func (o OrderUtilities) ContinuousGetOrderStatus(orderID string, GetOrderStatusChan chan string) {
+// 	//using the orderID to check the order status
+// 	for {
+// 		getOrderStatusByte, err := oanda.GetOrderStatus(orderID)
+// 		if err != nil {
+// 			log.Println(err)
+// 			continue
+// 		}
+//
+// 		orderStatus := oanda.OrderStatus{}.UnmarshalOrderStatus(getOrderStatusByte)
+// 		//FIXME this is assuming the order we want is the 0 element in the list
+// 		state := orderStatus.OrderStatusData[0].State
+// 		GetOrderStatusChan <- state
+// 	}
+// }
