@@ -16,12 +16,13 @@ Raider is a trading algorithm that implements the Bolinger Band indicator
 
 //Raider holds the algo state and neccesary algo data
 type Raider struct {
-	OrderStatus     string       //closed/pending/open.
+	Instrument      string
+	OrderState      string       //closed/pending/open.
 	CreateOrderCode int          //0 = dont execute 1 = execute
 	OrderID         string       //OrderID of current order
 	Orders          oanda.Orders //Order SL/TP Limit/Market data
 	Util            OrderUtilities
-	Error error
+	Error           error
 }
 
 /*
@@ -38,14 +39,14 @@ func (r Raider) Init(instrument string, units string) {
 	var mu sync.Mutex
 
 	RaiderChan := make(chan Raider)
-	GetOrderStatusChan := make(chan string)
+	GetOrderStateChan := make(chan string)
+	r.Instrument = instrument
 
 	wg.Add(2)
 	//Checks whether or not conditions are right to trade
 	go r.ContinuousRaid(instrument, RaiderChan)
 	//Checks whether orders are close, pending, or open
-	go r.Util.ContinuousGetOrderStatus(r.OrderID, GetOrderStatusChan)
-
+	go r.Util.ContinuousGetOrderStatus(r.OrderID, GetOrderStateChan)
 
 	for {
 		select {
@@ -56,32 +57,30 @@ func (r Raider) Init(instrument string, units string) {
 				continue
 			}
 
-			if r.CreateOrderCode == 1 && r.OrderStatus == "closed" {
+			if raider.CreateOrderCode == 1 && r.OrderState == "closed" {
 				fmt.Println("received create order signal...")
 				mu.Lock()
-				//doing exspensive IO calls but need to verify OrderStatus before assigning
+				//doing exspensive IO calls but need to verify OrderState
 				r.OrderID = r.Util.ExecuteOrder(instrument, units, raider)
-				r.OrderStatus = r.Util.GetOrderStatus(r.OrderID)
-				r.OrderStatus = "pending"
+				r.OrderState = r.Util.GetOrderStatus(r.OrderID)
 				mu.Unlock()
 			} else {
-				//fmt.Println(raider)
-				fmt.Println("...")
+				fmt.Printf("Create Order Code = %d\n", raider.CreateOrderCode)
 			}
 		//FIXME need to make sure you understand the checkOrder data structures
-		case r.OrderStatus = <-GetOrderStatusChan:
-			if r.OrderStatus == "closed" {
+		case r.OrderState = <-GetOrderStateChan:
+			if r.OrderState == "closed" {
 				mu.Lock()
-				r.OrderStatus = "closed"
+				r.OrderState = "closed"
 				mu.Unlock()
-				//fmt.Printf("order %s = closed", r.OrderID)
-			} else if r.OrderStatus == "pending" {
-				//fmt.Printf("order %s = pending", r.OrderID)
-			} else if r.OrderStatus == "open" {
+				fmt.Printf("ORDER-ID %s %s STATE = %s\n", r.OrderID, r.Instrument, r.OrderState)
+			} else if r.OrderState == "pending" {
+				fmt.Printf("ORDER-ID %s %s STATE = %s\n", r.OrderID, r.Instrument, r.OrderState)
+			} else if r.OrderState == "open" {
 				mu.Lock()
-				r.OrderStatus = "open"
+				r.OrderState = "open"
 				mu.Unlock()
-				//fmt.Printf("order %s = open", r.OrderID)
+				fmt.Printf("ORDER-ID %s %s STATE = %s\n", r.OrderID, r.Instrument, r.OrderState)
 			}
 			// default:
 			// 	fmt.Print("no data...")
@@ -90,6 +89,12 @@ func (r Raider) Init(instrument string, units string) {
 	}
 	wg.Wait()
 }
+
+// func (r Raider) ExecuteContinuosRaid(RaiderChan chan Raider) {
+// 	for raider := range RaiderChan {
+//
+// 	}
+// }
 
 //SingleRaid compares a single PricesData to a BollingerBand and returns Orders
 //and the CreateOrderCode. 1 = execute order, 0 = don't execute order
