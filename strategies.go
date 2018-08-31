@@ -36,17 +36,15 @@ CheckOrder()
 //Init kicks off the select pattern to create orders and check orders
 func (r Raider) Init(instrument string, units string) {
 	var wg sync.WaitGroup
-	var mu sync.Mutex
 
 	RaiderChan := make(chan Raider)
-	GetOrderStateChan := make(chan string)
 	r.Instrument = instrument
 
 	wg.Add(2)
 	//Checks whether or not conditions are right to trade
-	go r.ContinuousRaid(instrument, RaiderChan)
-	//Checks whether orders are close, pending, or open
-	go r.Util.ContinuousGetOrderStatus(r.OrderID, GetOrderStateChan)
+	//go r.ContinuousRaid(instrument, RaiderChan)
+	go r.ExecuteContinuosRaid(instrument, units, RaiderChan)
+	go r.ExecuteContinuousGetOrderStatus()
 
 	// for {
 	// 	select {
@@ -92,8 +90,9 @@ func (r Raider) Init(instrument string, units string) {
 
 //ExecuteContinuosRaid ranges over the RaiderChan to execute orders and update
 //Raider fields
-func (r Raider) ExecuteContinuosRaid(instrument string, RaiderChan chan Raider) {
+func (r Raider) ExecuteContinuosRaid(instrument string, units string, RaiderChan chan Raider) {
 	var wg sync.WaitGroup
+	var mu sync.Mutex
 
 	wg.Add(1)
 	//Checks whether or not conditions are right to trade
@@ -101,31 +100,32 @@ func (r Raider) ExecuteContinuosRaid(instrument string, RaiderChan chan Raider) 
 
 	for raider := range RaiderChan {
 		if raider.Error != nil {
-				log.Println(raider.Error)
-				continue
-			}
-
-			if raider.CreateOrderCode == 1 && r.OrderState == "closed" {
-				fmt.Println("received create order signal...")
-				mu.Lock()
-				//doing exspensive IO calls but need to verify OrderState
-				r.OrderID = r.Util.ExecuteOrder(instrument, units, raider)
-				r.OrderState = r.Util.GetOrderStatus(r.OrderID)
-				mu.Unlock()
-			} else {
-				fmt.Printf("Create Order Code = %d\n", raider.CreateOrderCode)
-			}
+			log.Println(raider.Error)
+			continue
 		}
-		wg.Wait()
+
+		if raider.CreateOrderCode == 1 && r.OrderState == "closed" {
+			fmt.Println("received create order signal...")
+			mu.Lock()
+			//doing exspensive IO calls but need to verify OrderState
+			r.OrderID = r.Util.ExecuteOrder(instrument, units, raider)
+			r.OrderState = r.Util.GetOrderStatus(r.OrderID)
+			mu.Unlock()
+		} else {
+			fmt.Printf("Create Order Code = %d\n", raider.CreateOrderCode)
+		}
+	}
+	wg.Wait()
 }
 
 //ExecuteContinuousGetOrderStatus ranges over the GetOrderStatusChan to update
 //the Raider Status field
-func (r Raider) ExecuteContinuousGetOrderStatus(GetOrderStateChan chan string) {
+func (r Raider) ExecuteContinuousGetOrderStatus() {
+	var mu sync.Mutex
 
 	for {
 		mu.Lock()
-		r.OrderState = GetOrderStatus(r.OrderID)
+		r.OrderState = r.Util.GetOrderStatus(r.OrderID)
 		mu.Unlock()
 		fmt.Printf("ORDER-ID %s %s STATE = %s\n", r.OrderID, r.Instrument, r.OrderState)
 	}
