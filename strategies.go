@@ -20,7 +20,7 @@ type Raider struct {
 	CreateOrderCode int          //0 = dont execute 1 = execute
 	OrderID         string       //OrderID of current order
 	Orders          oanda.Orders //Order SL/TP Limit/Market data
-	OrderUtilities
+	Util            OrderUtilities
 	Error error
 }
 
@@ -44,8 +44,8 @@ func (r Raider) Init(instrument string, units string) {
 	//Checks whether or not conditions are right to trade
 	go r.ContinuousRaid(instrument, RaiderChan)
 	//Checks whether orders are close, pending, or open
-	go ContinuousGetOrderStatus(r.OrderID, GetOrderStatusChan)
-	wg.Wait()
+	go r.Util.ContinuousGetOrderStatus(r.OrderID, GetOrderStatusChan)
+
 
 	for {
 		select {
@@ -60,8 +60,8 @@ func (r Raider) Init(instrument string, units string) {
 				fmt.Println("received create order signal...")
 				mu.Lock()
 				//doing exspensive IO calls but need to verify OrderStatus before assigning
-				r.OrderID = ExecuteOrder(instrument, units, raider)
-				r.OrderStatus = GetOrderStatus(r.OrderID)
+				r.OrderID = r.Util.ExecuteOrder(instrument, units, raider)
+				r.OrderStatus = r.Util.GetOrderStatus(r.OrderID)
 				r.OrderStatus = "pending"
 				mu.Unlock()
 			} else {
@@ -84,14 +84,11 @@ func (r Raider) Init(instrument string, units string) {
 				//fmt.Printf("order %s = open", r.OrderID)
 			}
 			// default:
-			// 	fmt.Println("no data...")
-			// 	fmt.Println(r.Orders)
+			// 	fmt.Print("no data...")
+			// // 	fmt.Println(r.Orders)
 		}
-		fmt.Println("")
-		fmt.Println("")
 	}
-
-
+	wg.Wait()
 }
 
 //SingleRaid compares a single PricesData to a BollingerBand and returns Orders

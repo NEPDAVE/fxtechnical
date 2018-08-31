@@ -15,14 +15,11 @@ GetOrderStatus()
 */
 
 //OrderUtilities is a collection of method signatures
-type OrderUtilities interface {
-	ExecuteOrder()
-	GetOrderStatus()
-	ContinuousGetOrderStatus()
+type OrderUtilities struct {
 }
 
 //ExecuteOrder sets the number of units to trade then creates the order
-func ExecuteOrder(instrument string, units string, raider Raider) string {
+func (o OrderUtilities) ExecuteOrder(instrument string, units string, raider Raider) string {
 	raider.Orders.OrderData.Units = units
 
 	//creating []byte order data for the order HTTP body
@@ -47,7 +44,7 @@ func ExecuteOrder(instrument string, units string, raider Raider) string {
 }
 
 //GetOrderStatus uses an OrderID to get the latest order status
-func GetOrderStatus(OrderID string) string {
+func (o OrderUtilities) GetOrderStatus(OrderID string) string {
 	//using the orderID to check the order status
 	getOrderStatusByte, err := oanda.GetOrderStatus(OrderID)
 	if err != nil {
@@ -55,7 +52,7 @@ func GetOrderStatus(OrderID string) string {
 	}
 	// fmt.Println("")
 	// fmt.Println("STRING CHECK ORDER BYTE:")
-	// fmt.Println(string(GetOrderStatusByte))
+	// fmt.Println(string(getOrderStatusByte))
 	// fmt.Println("")
 	//FIXME this is assuming the order we want is the 0 element in the list
 	state := oanda.OrderStatus{}.UnmarshalOrderStatus(getOrderStatusByte).OrderStatusData[0].State
@@ -69,7 +66,7 @@ func GetOrderStatus(OrderID string) string {
 }
 
 //ContinuousGetOrderStatus uses an OrderID to continuously get the latest order status
-func ContinuousGetOrderStatus(orderID string, GetOrderStatusChan chan string) {
+func (o OrderUtilities) ContinuousGetOrderStatus(orderID string, GetOrderStatusChan chan string) {
 	//using the orderID to check the order status
 	for {
 		getOrderStatusByte, err := oanda.GetOrderStatus(orderID)
@@ -78,14 +75,15 @@ func ContinuousGetOrderStatus(orderID string, GetOrderStatusChan chan string) {
 		}
 		// fmt.Println("")
 		// fmt.Println("STRING CHECK ORDER BYTE:")
-		// fmt.Println(string(GetOrderStatusByte))
+		// fmt.Println(string(getOrderStatusByte))
 		// fmt.Println("")
 		//FIXME this is assuming the order we want is the 0 element in the list
-		state := oanda.OrderStatus{}.UnmarshalOrderStatus(getOrderStatusByte).OrderStatusData[0].State
+		orderStatus := oanda.OrderStatus{}.UnmarshalOrderStatus(getOrderStatusByte)
+		state := orderStatus.OrderStatusData[0].State
 		fmt.Println("")
 		fmt.Println("")
 		fmt.Println("STATE:")
-		fmt.Println(state)
+		fmt.Printf("%s = %s", orderStatus.OrderStatusData[0].Instrument, state)
 		fmt.Println("")
 		fmt.Println("")
 		GetOrderStatusChan <- state
