@@ -1,7 +1,7 @@
 package fxtechnical
 
 import (
-	//"fmt"
+	"fmt"
 	oanda "github.com/nepdave/oanda"
 	"log"
 )
@@ -22,6 +22,14 @@ type OrderUtilities struct {
 //ExecuteOrder sets the number of units to trade then creates the order using
 //the oanda package CreateOrder primitive function and returns an OrderID
 func (o OrderUtilities) ExecuteOrder(instrument string, units string, raider Raider) string {
+	//capturing panic raised by Unmarshaling
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("UnmarshalOrderCreateTransaction() panicked")
+			log.Println(err)
+		}
+	}()
+
 	raider.Orders.OrderData.Units = units
 
 	//creating []byte order data for the order HTTP body
@@ -47,6 +55,14 @@ func (o OrderUtilities) ExecuteOrder(instrument string, units string, raider Rai
 
 //GetOrderStatus uses an OrderID to get the latest order status
 func (o OrderUtilities) GetOrderStatus(OrderID string) string {
+	//capturing panic raised by Unmarshaling
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("UnmarshalOrderStatus() panicked")
+			log.Println(err)
+		}
+	}()
+
 	//using the orderID to check the order status
 	getOrderStatusByte, err := oanda.GetOrderStatus(OrderID)
 	if err != nil {
