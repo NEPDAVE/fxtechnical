@@ -17,9 +17,10 @@ Raider is a trading algorithm that implements the Bolinger Band indicator
 //Raider holds the algo state and neccesary algo data
 type Raider struct {
 	Instrument      string
+	mu              sync.Mutex
 	OrderState      string       //closed/pending/open.
 	CreateOrderCode int          //0 = dont execute 1 = execute
-	OrderID         string       //OrderID of current order
+	OrderID         string "none"       //OrderID of current order
 	Orders          oanda.Orders //Order SL/TP Limit/Market data
 	Util            OrderUtilities
 	Error           error
@@ -41,58 +42,16 @@ func (r Raider) Init(instrument string, units string) {
 	r.Instrument = instrument
 
 	wg.Add(2)
-	//Checks whether or not conditions are right to trade
-	//go r.ContinuousRaid(instrument, RaiderChan)
 	go r.ExecuteContinuosRaid(instrument, units, RaiderChan)
 	go r.ExecuteContinuousGetOrderStatus()
 
-	// for {
-	// 	select {
-	// 	case raider := <-RaiderChan:
-	//
-	// 		if raider.Error != nil {
-	// 			log.Println(raider.Error)
-	// 			continue
-	// 		}
-	//
-	// 		if raider.CreateOrderCode == 1 && r.OrderState == "closed" {
-	// 			fmt.Println("received create order signal...")
-	// 			mu.Lock()
-	// 			//doing exspensive IO calls but need to verify OrderState
-	// 			r.OrderID = r.Util.ExecuteOrder(instrument, units, raider)
-	// 			r.OrderState = r.Util.GetOrderStatus(r.OrderID)
-	// 			mu.Unlock()
-	// 		} else {
-	// 			fmt.Printf("Create Order Code = %d\n", raider.CreateOrderCode)
-	// 		}
-	// 	//FIXME need to make sure you understand the checkOrder data structures
-	// 	case r.OrderState = <-GetOrderStateChan:
-	// 		if r.OrderState == "closed" {
-	// 			mu.Lock()
-	// 			r.OrderState = "closed"
-	// 			mu.Unlock()
-	// 			fmt.Printf("ORDER-ID %s %s STATE = %s\n", r.OrderID, r.Instrument, r.OrderState)
-	// 		} else if r.OrderState == "pending" {
-	// 			fmt.Printf("ORDER-ID %s %s STATE = %s\n", r.OrderID, r.Instrument, r.OrderState)
-	// 		} else if r.OrderState == "open" {
-	// 			mu.Lock()
-	// 			r.OrderState = "open"
-	// 			mu.Unlock()
-	// 			fmt.Printf("ORDER-ID %s %s STATE = %s\n", r.OrderID, r.Instrument, r.OrderState)
-	// 		}
-	// 		// default:
-	// 		// 	fmt.Print("no data...")
-	// 		// // 	fmt.Println(r.Orders)
-	// 	}
-	// }
 	wg.Wait()
 }
 
 //ExecuteContinuosRaid ranges over the RaiderChan to execute orders and update
 //Raider fields
-func (r Raider) ExecuteContinuosRaid(instrument string, units string, RaiderChan chan Raider) {
+func (r *Raider) ExecuteContinuosRaid(instrument string, units string, RaiderChan chan Raider) {
 	var wg sync.WaitGroup
-	var mu sync.Mutex
 
 	wg.Add(1)
 	//Checks whether or not conditions are right to trade
@@ -106,11 +65,11 @@ func (r Raider) ExecuteContinuosRaid(instrument string, units string, RaiderChan
 
 		if raider.CreateOrderCode == 1 && r.OrderState == "closed" {
 			fmt.Println("received create order signal...")
-			mu.Lock()
+			r.mu.Lock()
 			//doing exspensive IO calls but need to verify OrderState
 			r.OrderID = r.Util.ExecuteOrder(instrument, units, raider)
 			r.OrderState = r.Util.GetOrderStatus(r.OrderID)
-			mu.Unlock()
+			r.mu.Unlock()
 		} else {
 			fmt.Printf("Create Order Code = %d\n", raider.CreateOrderCode)
 		}
@@ -120,20 +79,22 @@ func (r Raider) ExecuteContinuosRaid(instrument string, units string, RaiderChan
 
 //ExecuteContinuousGetOrderStatus ranges over the GetOrderStatusChan to update
 //the Raider Status field
-func (r Raider) ExecuteContinuousGetOrderStatus() {
-	var mu sync.Mutex
-
+func (r *Raider) ExecuteContinuousGetOrderStatus() {
 	for {
-		mu.Lock()
+		r.mu.Lock()
 		r.OrderState = r.Util.GetOrderStatus(r.OrderID)
-		mu.Unlock()
+		r.mu.Unlock()
+		fmt.Println("")
+		fmt.Println("this is where order id should be...")
+		fmt.Println(r.OrderID)
+		fmt.Println("")
 		fmt.Printf("ORDER-ID %s %s STATE = %s\n", r.OrderID, r.Instrument, r.OrderState)
 	}
 }
 
 //SingleRaid compares a single PricesData to a BollingerBand and returns Orders
 //and the CreateOrderCode. 1 = execute order, 0 = don't execute order
-func (r Raider) SingleRaid(instrument string) (oanda.Orders, int) {
+func (r *Raider) SingleRaid(instrument string) (oanda.Orders, int) {
 	bb := BollingerBand{}.Init(instrument, "20", "D")
 	pricesData := PricesData{}.Init(instrument)
 
@@ -163,7 +124,7 @@ func (r Raider) SingleRaid(instrument string) (oanda.Orders, int) {
 
 //ContinuousRaid ranges over a channel of PricesData comparing each PricesData to a
 //BollingerBand and sends a trading decision over a channel to the caller
-func (r Raider) ContinuousRaid(instrument string, RaiderChan chan Raider) {
+func (r *Raider) ContinuousRaid(instrument string, RaiderChan chan Raider) {
 	bb := BollingerBand{}.Init(instrument, "20", "D")
 	var wg sync.WaitGroup
 
