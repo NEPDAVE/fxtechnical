@@ -4,6 +4,7 @@ import (
 	"fmt"
 	oanda "github.com/nepdave/oanda"
 	"log"
+	"sync"
 )
 
 /*
@@ -14,16 +15,46 @@ GetOrderID()
 GetOrderStatus()
 */
 
+/*
+***************************
+OrderState holds the order state
+***************************
+*/
+
+//OrderState holds the Instrument order state and an OrderID
+type OrderState struct {
+	Instrument string
+	mu         sync.Mutex
+	State      string //closed/pending/open.
+	OrderID    string //OrderID of order
+	Error      error
+}
+
 //SideFilled holds the data for whether or not a long or short order was filled
 type SideFilled struct {
-	NoSide bool
-	Buy    bool
-	Sell   bool
+	Long  bool
+	Short bool
 }
 
 //OrderUtilities is a collection of methods for checking order status/data and
 //creating orders
 type OrderUtilities struct {
+}
+
+//CancelOppositeOrder cancels the opposite long/short that was not filled
+func (o OrderUtilities) CancelOppositeOrder(longOrderID string,
+	shortOrderID string, sideFilledChan chan SideFilled) {
+
+	for sideFilled := range sideFilledChan {
+
+		if sideFilled.Long == true {
+			cancelOrderByte, err := oanda.CancelOrder(d.ShortOrderID)
+			fmt.Println(string(cancelOrderByte))
+		} else if sideFilled.Short == true {
+			cancelOrderByte, err := oanda.CancelOrder(d.LongOrderID)
+			fmt.Println(string(cancelOrderByte))
+		}
+	}
 }
 
 //CreateOrderAndGetOrderID sets the number of units to trade then creates the order using

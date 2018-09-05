@@ -1,4 +1,4 @@
-package oanda
+package fxtechnical
 
 import (
 	//"log"
@@ -16,7 +16,7 @@ orders
 ***************************
 */
 
-//Orders represents entire order(s) object when submiting and order to Oanda
+//Orders represents entire order(s) object when creating an Oanda order
 type Orders struct {
 	OrderData Order `json:"order"`
 }
@@ -45,9 +45,9 @@ type TakeProfitOnFill struct {
 	Price       string `json:"price"`
 }
 
-//MarketBuyOrder builds struct needed for marshaling data into a []byte
+//MarketLongOrder builds struct needed for marshaling data into a []byte
 //FIXME should not be setting SL/TP in this package
-func (o Orders) MarketBuyOrder(bid float64, ask float64, instrument string, units string) Orders {
+func (o Orders) MarketLongOrder(bid float64, ask float64, instrument string, units string) Orders {
 	//tp/sl ratio is 3 to 1
 	stopLossPrice := fmt.Sprintf("%.5f", bid-(ask*.005))
 	stopLossOnFill := StopLossOnFill{TimeInForce: "GTC", Price: stopLossPrice}
@@ -66,9 +66,9 @@ func (o Orders) MarketBuyOrder(bid float64, ask float64, instrument string, unit
 	return o
 }
 
-//MarketSellOrder builds struct needed for marshaling data into a []byte
+//MarketShortOrder builds struct needed for marshaling data into a []byte
 //FIXME should not be setting SL/TP in this package
-func (o Orders) MarketSellOrder(bid float64, ask float64, instrument string, units string) Orders {
+func (o Orders) MarketShortOrder(bid float64, ask float64, instrument string, units string) Orders {
 	//tp/sl ratio is 3 to 1
 	stopLossPrice := fmt.Sprintf("%.5f", ask+(bid*.005))
 	stopLossOnFill := StopLossOnFill{TimeInForce: "GTC", Price: stopLossPrice}
@@ -82,6 +82,48 @@ func (o Orders) MarketSellOrder(bid float64, ask float64, instrument string, uni
 		TimeInForce:      "FOK",
 		Instrument:       instrument,
 		Type:             "MARKET",
+		PositionFill:     "DEFAULT"}
+
+	return o
+}
+
+//LimitLongOrder builds struct needed for marshaling data into a []byte
+//FIXME SL/TP is hard coded. need to do more research here
+func (o Orders) LimitLongOrder(targetPrice float64, instrument string, units string) Orders {
+	//tp/sl ratio is 3 to 1
+	stopLossPrice := fmt.Sprintf("%.5f", (targetPrice - .001))
+	stopLossOnFill := StopLossOnFill{TimeInForce: "GTC", Price: stopLossPrice}
+
+	takeProfitPrice := fmt.Sprintf("%.5f", targetPrice+.003)
+	takeProfitOnFill := TakeProfitOnFill{TimeInForce: "GTC", Price: takeProfitPrice}
+
+	o.OrderData = Order{
+		StopLossOnFill:   stopLossOnFill,
+		TakeProfitOnFill: takeProfitOnFill,
+		TimeInForce:      "GTC",
+		Instrument:       instrument,
+		Type:             "LIMIT",
+		PositionFill:     "DEFAULT"}
+
+	return o
+}
+
+//LimitShortOrder builds struct needed for marshaling data into a []byte
+//FIXME SL/TP is hard coded. need to do more research here
+func (o Orders) LimitShortOrder(targetPrice float64, instrument string, units string) Orders {
+	//tp/sl ratio is 3 to 1
+	stopLossPrice := fmt.Sprintf("%.5f", (targetPrice + .001))
+	stopLossOnFill := StopLossOnFill{TimeInForce: "GTC", Price: stopLossPrice}
+
+	takeProfitPrice := fmt.Sprintf("%.5f", (targetPrice - .003))
+	takeProfitOnFill := TakeProfitOnFill{TimeInForce: "GTC", Price: takeProfitPrice}
+
+	o.OrderData = Order{
+		StopLossOnFill:   stopLossOnFill,
+		TakeProfitOnFill: takeProfitOnFill,
+		TimeInForce:      "GTC",
+		Instrument:       instrument,
+		Type:             "LIMIT",
 		PositionFill:     "DEFAULT"}
 
 	return o

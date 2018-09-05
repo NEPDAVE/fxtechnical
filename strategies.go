@@ -24,34 +24,46 @@ Dragons is a trading algorithm that implements the London daybreak strategy
 
 //Dragons holds the trading alogorithm state and neccesary data
 type Dragons struct {
-	Instrument  string
-	High        float64        //high from the last three hours
-	Low         float64        //low from the last three hours
-	mu          sync.Mutex
-	LongOrderID  string         //OrderID of current order
+	Instrument   string
+	High         float64 //high from the last three hours
+	Low          float64 //low from the last three hours
+	mu           sync.Mutex
+	LongOrderID  string //OrderID of current order
 	ShortOrderID string
-	LongOrders  Orders   //Order SL/TP Limit/Market data
-	ShortOrders Orders   //Order SL/TP Limit/Market data
-	SideFilled  SideFilled     //no side/long/short
-	Utils       OrderUtilities //OrderUtilities functions
+	LongOrders   Orders         //Order SL/TP Limit/Market data
+	ShortOrders  Orders         //Order SL/TP Limit/Market data
+	SideFilled   SideFilled     //no side/long/short
+	Utils        OrderUtilities //OrderUtilities functions
 }
 
 //Init kicks off the goroutines to create orders and check orders
 func (d Dragons) Init(instrument string, units string) {
-	var wg sync.WaitGroup
+	//var wg sync.WaitGroup
 
-  //FIXME need to write all these functions
-	//d.High := GetHigh(instrument, "H", 3)
-	//d.Low := GetLow(instrument, "H", 3)
+	//getting and unmarshaling last three hourly candle data
+	candles, err := Candles(instrument, 3, "H")
 
+	if err != nil {
+		log.Println(err)
+	}
+
+	d.High, d.Low = HighAndLow(candles)
 	d.LongOrders = Orders{}.LimitLongOrder(d.High)
 	d.ShortOrders = Orders{}.LimitSellOrder(d.Low)
 	d.LongOrderID = d.Utils.CreateOrderAndGetOrderID(instrument, units, d.LongOrders)
 	d.ShortOrderID = d.Utils.CreateOrderAndGetOrderID(instrument, units, d.ShortOrders)
 
+	fmt.Println("Long OrderID %s", d.LongOrderID)
+	fmt.Println("Short OrderID %s", d.ShortOrderID)
 
-	go GetOrderState()
+	//SideFilledChan := make(chan SideFilled)
 
+	// wg.Add(3)
+	// go GetOrderState(d.LongOrderID, SideFilledChan)
+	// go GetOrderState(d.ShortOrderID, SideFilledChan)
+	// go CancelOppositeOrder(d.LongOrderID, d.ShortOrderID, SideFilledChan)
+	//
+	// wg.Wait()
 
 }
 
@@ -72,7 +84,6 @@ type Raider struct {
 	Util            OrderUtilities
 	Error           error
 }
-
 
 //Init kicks off the goroutines to create orders and check orders
 func (r Raider) Init(instrument string, units string) {
