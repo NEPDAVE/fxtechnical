@@ -21,7 +21,7 @@ type OrderUtilities struct {
 
 //ExecuteOrder sets the number of units to trade then creates the order using
 //the oanda package CreateOrder primitive function and returns an OrderID
-func (o OrderUtilities) ExecuteOrder(instrument string, units string, raider Raider) string {
+func (o OrderUtilities) ExecuteOrder(instrument string, units string, orders oanda.Orders) string {
 	//capturing panic raised by Unmarshaling
 	defer func() {
 		if err := recover(); err != nil {
@@ -30,10 +30,10 @@ func (o OrderUtilities) ExecuteOrder(instrument string, units string, raider Rai
 		}
 	}()
 
-	raider.Orders.OrderData.Units = units
+	orders.OrderData.Units = units
 
 	//creating []byte order data for the order HTTP body
-	ordersByte := oanda.MarshalOrders(raider.Orders)
+	ordersByte := oanda.MarshalOrders(orders)
 
 	//creating/submiting the order to oanda
 	createOrderByte, err := oanda.CreateOrder(ordersByte)
