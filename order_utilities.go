@@ -14,15 +14,22 @@ GetOrderID()
 GetOrderStatus()
 */
 
+//SideFilled holds the data for whether or not a long or short order was filled
+type SideFilled struct {
+	NoSide bool
+	Buy    bool
+	Sell   bool
+}
+
 //OrderUtilities is a collection of methods for checking order status/data and
-//executing orders
+//creating orders
 type OrderUtilities struct {
 }
 
-//ExecuteOrder sets the number of units to trade then creates the order using
+//CreateOrderAndGetOrderID sets the number of units to trade then creates the order using
 //the oanda package CreateOrder primitive function and returns an OrderID
-func (o OrderUtilities) ExecuteOrder(instrument string, units string, orders oanda.Orders) string {
-	//capturing panic raised by Unmarshaling
+func (o OrderUtilities) CreateOrderAndGetOrderID(instrument string, units string, orders Orders) string {
+	//capturing panic raised by Unmarshaling returned createOrderByte
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Println("UnmarshalOrderCreateTransaction() panicked")
@@ -33,9 +40,9 @@ func (o OrderUtilities) ExecuteOrder(instrument string, units string, orders oan
 	orders.OrderData.Units = units
 
 	//creating []byte order data for the order HTTP body
-	ordersByte := oanda.MarshalOrders(orders)
+	ordersByte := oanda.MarshalOrders(orders.Orders)
 
-	//creating/submiting the order to oanda
+	//creating the orders to oanda
 	createOrderByte, err := oanda.CreateOrder(ordersByte)
 
 	//checking CreateOrder error
@@ -53,9 +60,10 @@ func (o OrderUtilities) ExecuteOrder(instrument string, units string, orders oan
 	return orderID
 }
 
-//GetOrderStatus uses an OrderID to get the latest order status
-func (o OrderUtilities) GetOrderStatus(OrderID string) string {
-	//capturing panic raised by Unmarshaling
+//GetOrderState uses an OrderID to get the latest order state
+//IE closed/pending/open
+func (o OrderUtilities) GetOrderState(OrderID string) string {
+	//capturing panic raised by Unmarshaling returned getOrderStatusByte
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Println("UnmarshalOrderStatus() panicked")
@@ -65,6 +73,8 @@ func (o OrderUtilities) GetOrderStatus(OrderID string) string {
 
 	//using the orderID to check the order status
 	getOrderStatusByte, err := oanda.GetOrderStatus(OrderID)
+
+	//checking the GetOrderState error
 	if err != nil {
 		log.Println(err)
 	}

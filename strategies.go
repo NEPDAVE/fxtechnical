@@ -9,6 +9,45 @@ import (
 )
 
 /*
+-An order is the instruction to buy or sell a currency at a specified rate. The order remains valid until executed or cancelled.
+-
+-A trade is the execution of the order.
+-
+-A position is the total of all trades for a specific market.
+-*/
+
+/*
+-***************************
+Dragons is a trading algorithm that implements the London daybreak strategy
+***************************
+*/
+
+//Dragons holds the trading alogorithm state and neccesary data
+type Dragons struct {
+	Instrument  string
+	mu          sync.Mutex
+	OrderID     string         //OrderID of current order
+	High        float64        //high from the last three hours
+	Low         float64        //low from the last three hours
+	LongOrders  oanda.Orders   //Order SL/TP Limit/Market data
+	ShortOrders oanda.Orders   //Order SL/TP Limit/Market data
+	SideFilled  SideFilled     //no side/long/short
+	Utils       OrderUtilities //OrderUtilities functions
+}
+
+//Init kicks off the goroutines to create orders and check orders
+func (d Dragons) Init(instrument string, units string) {
+  //FIXME need to write these functions for analysis.go
+	//d.High := GetHigh(instrument, "H", 3)
+	//d.Low := GetLow(instrument, "H", 3)
+
+	shortOrders := oanda.Orders{}.MarketSellOrder(pricesData.Bid,
+			pricesData.Ask,
+			instrument,
+			units)
+}
+
+/*
 ***************************
 Raider is a trading algorithm that implements the Bolinger Band indicator
 ***************************
@@ -20,21 +59,14 @@ type Raider struct {
 	mu              sync.Mutex
 	OrderState      string       //closed/pending/open.
 	CreateOrderCode int          //0 = dont execute 1 = execute
-	OrderID         string       "none" //OrderID of current order
+	OrderID         string       //OrderID of current order
 	Orders          oanda.Orders //Order SL/TP Limit/Market data
 	Util            OrderUtilities
 	Error           error
 }
 
-/*
-General flow
-PrepareOrder()
-CreateOrder()
-GetOrderID()
-CheckOrder()
-*/
 
-//Init kicks off the select pattern to create orders and check orders
+//Init kicks off the goroutines to create orders and check orders
 func (r Raider) Init(instrument string, units string) {
 	var wg sync.WaitGroup
 
