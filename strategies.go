@@ -25,26 +25,34 @@ Dragons is a trading algorithm that implements the London daybreak strategy
 //Dragons holds the trading alogorithm state and neccesary data
 type Dragons struct {
 	Instrument  string
-	mu          sync.Mutex
-	OrderID     string         //OrderID of current order
 	High        float64        //high from the last three hours
 	Low         float64        //low from the last three hours
-	LongOrders  oanda.Orders   //Order SL/TP Limit/Market data
-	ShortOrders oanda.Orders   //Order SL/TP Limit/Market data
+	mu          sync.Mutex
+	LongOrderID  string         //OrderID of current order
+	ShortOrderID string
+	LongOrders  Orders   //Order SL/TP Limit/Market data
+	ShortOrders Orders   //Order SL/TP Limit/Market data
 	SideFilled  SideFilled     //no side/long/short
 	Utils       OrderUtilities //OrderUtilities functions
 }
 
 //Init kicks off the goroutines to create orders and check orders
 func (d Dragons) Init(instrument string, units string) {
-  //FIXME need to write these functions for analysis.go
+	var wg sync.WaitGroup
+
+  //FIXME need to write all these functions
 	//d.High := GetHigh(instrument, "H", 3)
 	//d.Low := GetLow(instrument, "H", 3)
 
-	shortOrders := oanda.Orders{}.MarketSellOrder(pricesData.Bid,
-			pricesData.Ask,
-			instrument,
-			units)
+	d.LongOrders = Orders{}.LimitLongOrder(d.High)
+	d.ShortOrders = Orders{}.LimitSellOrder(d.Low)
+	d.LongOrderID = d.Utils.CreateOrderAndGetOrderID(instrument, units, d.LongOrders)
+	d.ShortOrderID = d.Utils.CreateOrderAndGetOrderID(instrument, units, d.ShortOrders)
+
+
+	go GetOrderState()
+
+
 }
 
 /*
