@@ -30,8 +30,8 @@ type Dragons struct {
 	mu           sync.Mutex
 	LongOrderID  string //OrderID of current order
 	ShortOrderID string
-	LongOrders   Orders         //Order SL/TP Limit/Market data
-	ShortOrders  Orders         //Order SL/TP Limit/Market data
+	LongOrders   oanda.Order    //Order SL/TP Limit/Market data
+	ShortOrders  oanda.Order    //Order SL/TP Limit/Market data
 	SideFilled   SideFilled     //no side/long/short
 	Utils        OrderUtilities //OrderUtilities functions
 }
@@ -41,15 +41,15 @@ func (d Dragons) Init(instrument string, units string) {
 	//var wg sync.WaitGroup
 
 	//getting and unmarshaling last three hourly candle data
-	candles, err := Candles(instrument, 3, "H")
+	candles, err := Candles(instrument, "3", "H")
 
 	if err != nil {
 		log.Println(err)
 	}
 
 	d.High, d.Low = HighAndLow(candles)
-	d.LongOrders = Orders{}.LimitLongOrder(d.High)
-	d.ShortOrders = Orders{}.LimitSellOrder(d.Low)
+	d.LongOrders = LimitLongOrder(d.High, instrument, units)
+	d.ShortOrders = LimitShortOrder(d.Low, instrument, units)
 	d.LongOrderID = d.Utils.CreateOrderAndGetOrderID(instrument, units, d.LongOrders)
 	d.ShortOrderID = d.Utils.CreateOrderAndGetOrderID(instrument, units, d.ShortOrders)
 

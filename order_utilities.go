@@ -48,10 +48,10 @@ func (o OrderUtilities) CancelOppositeOrder(longOrderID string,
 	for sideFilled := range sideFilledChan {
 
 		if sideFilled.Long == true {
-			cancelOrderByte, err := oanda.CancelOrder(d.ShortOrderID)
+			cancelOrderByte, err := oanda.CancelOrder(shortOrderID)
 			fmt.Println(string(cancelOrderByte))
 		} else if sideFilled.Short == true {
-			cancelOrderByte, err := oanda.CancelOrder(d.LongOrderID)
+			cancelOrderByte, err := oanda.CancelOrder(longOrderID)
 			fmt.Println(string(cancelOrderByte))
 		}
 	}
@@ -59,7 +59,8 @@ func (o OrderUtilities) CancelOppositeOrder(longOrderID string,
 
 //CreateOrderAndGetOrderID sets the number of units to trade then creates the order using
 //the oanda package CreateOrder primitive function and returns an OrderID
-func (o OrderUtilities) CreateOrderAndGetOrderID(instrument string, units string, orders Orders) string {
+func (o OrderUtilities) CreateOrderAndGetOrderID(instrument string,
+	units string, orders oanda.Orders) string {
 	//capturing panic raised by Unmarshaling returned createOrderByte
 	defer func() {
 		if err := recover(); err != nil {
@@ -71,7 +72,7 @@ func (o OrderUtilities) CreateOrderAndGetOrderID(instrument string, units string
 	orders.OrderData.Units = units
 
 	//creating []byte order data for the order HTTP body
-	ordersByte := oanda.MarshalOrders(orders.Orders)
+	ordersByte := oanda.Orders{}.MarshalOrders(orders)
 
 	//creating the orders to oanda
 	createOrderByte, err := oanda.CreateOrder(ordersByte)
