@@ -27,11 +27,10 @@ type Dragons struct {
 	Instrument   string
 	High         float64 //high from the last three hours
 	Low          float64 //low from the last three hours
-	mu           sync.Mutex
-	LongOrderID  string //OrderID of current order
+	LongOrderID  string  //OrderID of current order
 	ShortOrderID string
-	LongOrders   oanda.Order    //Order SL/TP Limit/Market data
-	ShortOrders  oanda.Order    //Order SL/TP Limit/Market data
+	LongOrders   oanda.Orders   //Order SL/TP Limit/Market data
+	ShortOrders  oanda.Orders   //Order SL/TP Limit/Market data
 	SideFilled   SideFilled     //no side/long/short
 	Utils        OrderUtilities //OrderUtilities functions
 }
@@ -53,8 +52,8 @@ func (d Dragons) Init(instrument string, units string) {
 	d.LongOrderID = d.Utils.CreateOrderAndGetOrderID(instrument, units, d.LongOrders)
 	d.ShortOrderID = d.Utils.CreateOrderAndGetOrderID(instrument, units, d.ShortOrders)
 
-	fmt.Println("Long OrderID %s", d.LongOrderID)
-	fmt.Println("Short OrderID %s", d.ShortOrderID)
+	fmt.Printf("Long OrderID %s", d.LongOrderID)
+	fmt.Printf("Short OrderID %s", d.ShortOrderID)
 
 	//SideFilledChan := make(chan SideFilled)
 
@@ -76,7 +75,6 @@ Raider is a trading algorithm that implements the Bolinger Band indicator
 //Raider holds the algo state and neccesary algo data
 type Raider struct {
 	Instrument      string
-	mu              sync.Mutex
 	OrderState      string       //closed/pending/open.
 	CreateOrderCode int          //0 = dont execute 1 = execute
 	OrderID         string       //OrderID of current order
@@ -94,7 +92,7 @@ func (r Raider) Init(instrument string, units string) {
 
 	wg.Add(2)
 	go r.ExecuteContinuosRaid(instrument, units, RaiderChan)
-	go r.ExecuteContinuousGetOrderStatus()
+	go r.ExecuteContinuousGetOrderState()
 
 	wg.Wait()
 }
@@ -103,6 +101,7 @@ func (r Raider) Init(instrument string, units string) {
 //Raider fields
 func (r *Raider) ExecuteContinuosRaid(instrument string, units string, RaiderChan chan Raider) {
 	var wg sync.WaitGroup
+	var mu sync.Mutex
 
 	wg.Add(1)
 	//Checks whether or not conditions are right to trade
@@ -116,11 +115,12 @@ func (r *Raider) ExecuteContinuosRaid(instrument string, units string, RaiderCha
 
 		if raider.CreateOrderCode == 1 && r.OrderState == "closed" {
 			fmt.Println("received create order signal...")
-			r.mu.Lock()
+			mu.Lock()
 			//doing exspensive IO calls but need to verify OrderState
-			r.OrderID = r.Util.ExecuteOrder(instrument, units, raider.Orders)
-			r.OrderState = r.Util.GetOrderStatus(r.OrderID)
-			r.mu.Unlock()
+			r.OrderID = r.Util.CreateOrderAndGetOrderID(instrument, units,
+				raider.Orders)
+			r.OrderState = r.Util.GetOrderState(r.OrderID)
+			mu.Unlock()
 		} else {
 			fmt.Printf("Create Order Code = %d\n", raider.CreateOrderCode)
 		}
@@ -128,13 +128,15 @@ func (r *Raider) ExecuteContinuosRaid(instrument string, units string, RaiderCha
 	wg.Wait()
 }
 
-//ExecuteContinuousGetOrderStatus ranges over the GetOrderStatusChan to update
+//ExecuteContinuousGetOrderState ranges over the GetOrderStateChan to update
 //the Raider Status field
-func (r *Raider) ExecuteContinuousGetOrderStatus() {
+func (r *Raider) ExecuteContinuousGetOrderState() {
+	var mu sync.Mutex
+
 	for {
-		r.mu.Lock()
-		r.OrderState = r.Util.GetOrderStatus(r.OrderID)
-		r.mu.Unlock()
+		mu.Lock()
+		r.OrderState = r.Util.GetOrderState(r.OrderID)
+		mu.Unlock()
 		fmt.Println("")
 		fmt.Printf("ORDER-ID %s %s STATE = %s\n", r.OrderID, r.Instrument, r.OrderState)
 	}
@@ -153,17 +155,17 @@ func (r *Raider) SingleRaid(instrument string) (oanda.Orders, int) {
 
 	//setting all units to 0 here so that proper amount of units can be set later
 	if pricesData.Bid > bb.UpperBand {
-		return oanda.Orders{}.MarketSellOrder(pricesData.Bid,
+		return MarketShortOrder(pricesData.Bid,
 			pricesData.Ask,
 			bb.Instrument,
 			"0"), 1
 	} else if pricesData.Ask < bb.LowerBand {
-		return oanda.Orders{}.MarketBuyOrder(pricesData.Bid,
+		return MarketLongOrder(pricesData.Bid,
 			pricesData.Ask,
 			bb.Instrument,
 			"0"), 1
 	} else {
-		return oanda.Orders{}.MarketBuyOrder(pricesData.Bid,
+		return MarketLongOrder(pricesData.Bid,
 			pricesData.Ask,
 			bb.Instrument,
 			"0"), 0
@@ -201,26 +203,20 @@ func (r *Raider) ContinuousRaid(instrument string, RaiderChan chan Raider) {
 		}
 
 		if pricesData.Bid > bb.UpperBand {
-			RaiderChan <- Raider{
-				Orders: oanda.Orders{}.MarketSellOrder(pricesData.Bid,
-					pricesData.Ask,
-					bb.Instrument, "0"),
-				CreateOrderCode: 1,
-			}
+			orders := MarketShortOrder(pricesData.Bid,
+				pricesData.Ask,
+				bb.Instrument, "0")
+			RaiderChan <- Raider{Orders: orders, CreateOrderCode: 1}
 		} else if pricesData.Ask < bb.LowerBand {
-			RaiderChan <- Raider{
-				Orders: oanda.Orders{}.MarketBuyOrder(pricesData.Bid,
-					pricesData.Ask,
-					bb.Instrument, "0"),
-				CreateOrderCode: 1,
-			}
+			orders := MarketLongOrder(pricesData.Bid,
+				pricesData.Ask,
+				bb.Instrument, "0")
+			RaiderChan <- Raider{Orders: orders, CreateOrderCode: 1}
 		} else {
-			RaiderChan <- Raider{
-				Orders: oanda.Orders{}.MarketBuyOrder(pricesData.Bid,
-					pricesData.Ask,
-					bb.Instrument, "0"),
-				CreateOrderCode: 0,
-			}
+			orders := MarketLongOrder(pricesData.Bid,
+				pricesData.Ask,
+				bb.Instrument, "0")
+			RaiderChan <- Raider{Orders: orders, CreateOrderCode: 0}
 		}
 	}
 }

@@ -49,9 +49,15 @@ func (o OrderUtilities) CancelOppositeOrder(longOrderID string,
 
 		if sideFilled.Long == true {
 			cancelOrderByte, err := oanda.CancelOrder(shortOrderID)
+			if err != nil {
+				log.Println(err)
+			}
 			fmt.Println(string(cancelOrderByte))
 		} else if sideFilled.Short == true {
 			cancelOrderByte, err := oanda.CancelOrder(longOrderID)
+			if err != nil {
+				log.Println(err)
+			}
 			fmt.Println(string(cancelOrderByte))
 		}
 	}
@@ -69,7 +75,7 @@ func (o OrderUtilities) CreateOrderAndGetOrderID(instrument string,
 		}
 	}()
 
-	orders.OrderData.Units = units
+	orders.Order.Units = units
 
 	//creating []byte order data for the order HTTP body
 	ordersByte := oanda.Orders{}.MarshalOrders(orders)

@@ -26,7 +26,7 @@ func MarketLongOrder(bid float64, ask float64, instrument string,
 	takeProfitOnFill := oanda.TakeProfitOnFill{TimeInForce: "GTC", Price: takeProfitPrice}
 
 	orders := oanda.Orders{
-		oanda.Order{
+		Order: oanda.Order{
 			StopLossOnFill:   stopLossOnFill,
 			TakeProfitOnFill: takeProfitOnFill,
 			TimeInForce:      "FOK",
@@ -50,7 +50,7 @@ func MarketShortOrder(bid float64, ask float64, instrument string,
 	takeProfitOnFill := oanda.TakeProfitOnFill{TimeInForce: "GTC", Price: takeProfitPrice}
 
 	orders := oanda.Orders{
-		oanda.Order{
+		Order: oanda.Order{
 			StopLossOnFill:   stopLossOnFill,
 			TakeProfitOnFill: takeProfitOnFill,
 			TimeInForce:      "FOK",
@@ -74,7 +74,7 @@ func LimitLongOrder(targetPrice float64, instrument string,
 	takeProfitOnFill := oanda.TakeProfitOnFill{TimeInForce: "GTC", Price: takeProfitPrice}
 
 	orders := oanda.Orders{
-		oanda.Order{
+		Order: oanda.Order{
 			StopLossOnFill:   stopLossOnFill,
 			TakeProfitOnFill: takeProfitOnFill,
 			TimeInForce:      "GTC",
@@ -98,7 +98,7 @@ func LimitShortOrder(targetPrice float64, instrument string,
 	takeProfitOnFill := oanda.TakeProfitOnFill{TimeInForce: "GTC", Price: takeProfitPrice}
 
 	orders := oanda.Orders{
-		oanda.Order{
+		Order: oanda.Order{
 			StopLossOnFill:   stopLossOnFill,
 			TakeProfitOnFill: takeProfitOnFill,
 			TimeInForce:      "GTC",
