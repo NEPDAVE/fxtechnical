@@ -17,7 +17,7 @@ import (
 -*/
 
 /*
--***************************
+***************************
 Dragons is a trading algorithm that implements the London daybreak strategy
 ***************************
 */
@@ -29,10 +29,9 @@ type Dragons struct {
 	Low          float64 //low from the last three hours
 	LongOrderID  string  //OrderID of current order
 	ShortOrderID string
-	LongOrders   oanda.Orders   //Order SL/TP Limit/Market data
-	ShortOrders  oanda.Orders   //Order SL/TP Limit/Market data
-	SideFilled   SideFilled     //no side/long/short
-	Utils        OrderUtilities //OrderUtilities functions
+	LongOrders   oanda.Orders //Order SL/TP Limit/Market data
+	ShortOrders  oanda.Orders //Order SL/TP Limit/Market data
+	SideFilled   SideFilled   //no side/long/short
 }
 
 //Init kicks off the goroutines to create orders and check orders
@@ -40,20 +39,26 @@ func (d Dragons) Init(instrument string, units string) {
 	//var wg sync.WaitGroup
 
 	//getting and unmarshaling last three hourly candle data
-	candles, err := Candles(instrument, "3", "H")
+	candles, err := Candles(instrument, "3", "H1")
 
 	if err != nil {
 		log.Println(err)
 	}
 
-	d.High, d.Low = HighAndLow(candles)
-	d.LongOrders = LimitLongOrder(d.High, instrument, units)
-	d.ShortOrders = LimitShortOrder(d.Low, instrument, units)
-	d.LongOrderID = d.Utils.CreateOrderAndGetOrderID(instrument, units, d.LongOrders)
-	d.ShortOrderID = d.Utils.CreateOrderAndGetOrderID(instrument, units, d.ShortOrders)
+	//fmt.Println(candles)
 
-	fmt.Printf("Long OrderID %s", d.LongOrderID)
-	fmt.Printf("Short OrderID %s", d.ShortOrderID)
+	d.High, d.Low = HighAndLow(candles)
+	// fmt.Println(d.High)
+	// fmt.Println(d.Low)
+	d.LongOrders = LimitLongOrder(d.High, instrument, units)
+	// fmt.Println(d.LongOrders)
+	d.ShortOrders = LimitShortOrder(d.Low, instrument, units)
+	// fmt.Println(d.ShortOrders)
+	d.LongOrderID = CreateOrderAndGetOrderID(instrument, units, d.LongOrders)
+	d.ShortOrderID = CreateOrderAndGetOrderID(instrument, units, d.ShortOrders)
+
+	fmt.Printf("Long OrderID %s\n", d.LongOrderID)
+	fmt.Printf("Short OrderID %s\n", d.ShortOrderID)
 
 	//SideFilledChan := make(chan SideFilled)
 
@@ -79,7 +84,6 @@ type Raider struct {
 	CreateOrderCode int          //0 = dont execute 1 = execute
 	OrderID         string       //OrderID of current order
 	Orders          oanda.Orders //Order SL/TP Limit/Market data
-	Util            OrderUtilities
 	Error           error
 }
 
@@ -117,9 +121,9 @@ func (r *Raider) ExecuteContinuosRaid(instrument string, units string, RaiderCha
 			fmt.Println("received create order signal...")
 			mu.Lock()
 			//doing exspensive IO calls but need to verify OrderState
-			r.OrderID = r.Util.CreateOrderAndGetOrderID(instrument, units,
+			r.OrderID = CreateOrderAndGetOrderID(instrument, units,
 				raider.Orders)
-			r.OrderState = r.Util.GetOrderState(r.OrderID)
+			r.OrderState = GetOrderState(r.OrderID)
 			mu.Unlock()
 		} else {
 			fmt.Printf("Create Order Code = %d\n", raider.CreateOrderCode)
@@ -135,7 +139,7 @@ func (r *Raider) ExecuteContinuousGetOrderState() {
 
 	for {
 		mu.Lock()
-		r.OrderState = r.Util.GetOrderState(r.OrderID)
+		r.OrderState = GetOrderState(r.OrderID)
 		mu.Unlock()
 		fmt.Println("")
 		fmt.Printf("ORDER-ID %s %s STATE = %s\n", r.OrderID, r.Instrument, r.OrderState)

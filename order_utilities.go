@@ -36,13 +36,8 @@ type SideFilled struct {
 	Short bool
 }
 
-//OrderUtilities is a collection of methods for checking order status/data and
-//creating orders
-type OrderUtilities struct {
-}
-
 //CancelOppositeOrder cancels the opposite long/short that was not filled
-func (o OrderUtilities) CancelOppositeOrder(longOrderID string,
+func CancelOppositeOrder(longOrderID string,
 	shortOrderID string, sideFilledChan chan SideFilled) {
 
 	for sideFilled := range sideFilledChan {
@@ -65,7 +60,7 @@ func (o OrderUtilities) CancelOppositeOrder(longOrderID string,
 
 //CreateOrderAndGetOrderID sets the number of units to trade then creates the order using
 //the oanda package CreateOrder primitive function and returns an OrderID
-func (o OrderUtilities) CreateOrderAndGetOrderID(instrument string,
+func CreateOrderAndGetOrderID(instrument string,
 	units string, orders oanda.Orders) string {
 	//capturing panic raised by Unmarshaling returned createOrderByte
 	defer func() {
@@ -77,11 +72,23 @@ func (o OrderUtilities) CreateOrderAndGetOrderID(instrument string,
 
 	orders.Order.Units = units
 
+	fmt.Println("ORDERS:")
+	fmt.Println(orders)
+	fmt.Println("")
+
 	//creating []byte order data for the order HTTP body
 	ordersByte := oanda.Orders{}.MarshalOrders(orders)
 
+	fmt.Println("ORDERS BYTE:")
+	fmt.Println(string(ordersByte))
+	fmt.Println("")
+
 	//creating the orders to oanda
 	createOrderByte, err := oanda.CreateOrder(ordersByte)
+
+	fmt.Println("STRING CREATE ORDERS BYTE:")
+	fmt.Println(string(createOrderByte))
+	fmt.Println("")
 
 	//checking CreateOrder error
 	if err != nil {
@@ -100,7 +107,7 @@ func (o OrderUtilities) CreateOrderAndGetOrderID(instrument string,
 
 //GetOrderState uses an OrderID to get the latest order state
 //IE closed/pending/open
-func (o OrderUtilities) GetOrderState(OrderID string) string {
+func GetOrderState(OrderID string) string {
 	//capturing panic raised by Unmarshaling returned getOrderStatusByte
 	defer func() {
 		if err := recover(); err != nil {
