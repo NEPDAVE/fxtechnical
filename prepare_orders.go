@@ -70,7 +70,7 @@ func LimitLongOrder(targetPrice float64, instrument string,
 	stopLossPrice := fmt.Sprintf("%.5f", (targetPrice - .001))
 	stopLossOnFill := oanda.StopLossOnFill{TimeInForce: "GTC", Price: stopLossPrice}
 
-	takeProfitPrice := fmt.Sprintf("%.5f", targetPrice+.003)
+	takeProfitPrice := fmt.Sprintf("%.5f", targetPrice + .003)
 	takeProfitOnFill := oanda.TakeProfitOnFill{TimeInForce: "GTC", Price: takeProfitPrice}
 
 	stringTargetPrice := fmt.Sprintf("%.5f", targetPrice)
@@ -85,6 +85,8 @@ func LimitLongOrder(targetPrice float64, instrument string,
 			Type:             "LIMIT",
 			PositionFill:     "DEFAULT"},
 	}
+
+	fmt.Println(stringTargetPrice)
 
 	return orders
 }
@@ -112,6 +114,8 @@ func LimitShortOrder(targetPrice float64, instrument string,
 			Type:             "LIMIT",
 			PositionFill:     "DEFAULT"},
 	}
+
+	fmt.Println(stringTargetPrice)
 
 	return orders
 }

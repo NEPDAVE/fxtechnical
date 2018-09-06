@@ -36,7 +36,7 @@ type Dragons struct {
 
 //Init kicks off the goroutines to create orders and check orders
 func (d Dragons) Init(instrument string, units string) {
-	//var wg sync.WaitGroup
+	var wg sync.WaitGroup
 
 	//getting and unmarshaling last three hourly candle data
 	candles, err := Candles(instrument, "3", "H1")
@@ -50,24 +50,31 @@ func (d Dragons) Init(instrument string, units string) {
 	d.High, d.Low = HighAndLow(candles)
 	// fmt.Println(d.High)
 	// fmt.Println(d.Low)
-	d.LongOrders = LimitLongOrder(d.High, instrument, units)
+
+  //setting the long limit order target price
+	longTargetPrice := (d.High + .001)
+	d.LongOrders = LimitLongOrder(longTargetPrice, instrument, units)
 	// fmt.Println(d.LongOrders)
-	d.ShortOrders = LimitShortOrder(d.Low, instrument, units)
+
+	//setting the short limit order target price
+	shortTargetPrice := (d.Low - .001)
+	d.ShortOrders = LimitShortOrder(shortTargetPrice, instrument, units)
 	// fmt.Println(d.ShortOrders)
+
 	d.LongOrderID = CreateOrderAndGetOrderID(instrument, units, d.LongOrders)
 	d.ShortOrderID = CreateOrderAndGetOrderID(instrument, units, d.ShortOrders)
 
 	fmt.Printf("Long OrderID %s\n", d.LongOrderID)
 	fmt.Printf("Short OrderID %s\n", d.ShortOrderID)
 
-	//SideFilledChan := make(chan SideFilled)
+	SideFilledChan := make(chan SideFilled)
 
-	// wg.Add(3)
-	// go GetOrderState(d.LongOrderID, SideFilledChan)
-	// go GetOrderState(d.ShortOrderID, SideFilledChan)
-	// go CancelOppositeOrder(d.LongOrderID, d.ShortOrderID, SideFilledChan)
-	//
-	// wg.Wait()
+	wg.Add(3)
+	go GetOrderState(d.LongOrderID)
+	go GetOrderState(d.ShortOrderID)
+	go CancelOppositeOrder(d.LongOrderID, d.ShortOrderID, SideFilledChan)
+
+	wg.Wait()
 
 }
 

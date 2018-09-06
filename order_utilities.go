@@ -100,7 +100,8 @@ func CreateOrderAndGetOrderID(instrument string,
 		UnmarshalOrderCreateTransaction(createOrderByte)
 
 	//accessing the orderID field and saving it to a variable
-	orderID := orderCreateTransaction.OrderFillTransaction.OrderID
+	//orderID := orderCreateTransaction.OrderFillTransaction.OrderID
+	orderID := orderCreateTransaction.OrderCreateTransactionData.ID
 
 	return orderID
 }
