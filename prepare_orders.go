@@ -40,6 +40,7 @@ func MarketLongOrder(bid float64, ask float64, instrument string,
 
 //MarketShortOrder builds struct needed for marshaling data into a []byte
 //FIXME should not be setting SL/TP in this package
+//FIXME sell orders units need to be a string with a -(negative) sign in front
 func MarketShortOrder(bid float64, ask float64, instrument string,
 	units string) oanda.Orders {
 	//tp/sl ratio is 3 to 1

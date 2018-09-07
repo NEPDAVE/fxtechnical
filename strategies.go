@@ -38,6 +38,10 @@ type Dragons struct {
 func (d Dragons) Init(instrument string, units string) {
 	var wg sync.WaitGroup
 
+	longUnits := units
+	//making sure to add -(negative sign) to denote short order
+	shortUnits := "-" + units
+
 	//getting and unmarshaling last three hourly candle data
 	candles, err := Candles(instrument, "3", "H1")
 
@@ -45,33 +49,19 @@ func (d Dragons) Init(instrument string, units string) {
 		log.Println(err)
 	}
 
-	//fmt.Println(candles)
-
+  //getting the previous three hour high and low
 	d.High, d.Low = HighAndLow(candles)
-	// fmt.Println(d.High)
-	// fmt.Println(d.Low)
 
 	//setting the long limit order target price
 	longTargetPrice := (d.High + .001)
 	d.LongOrders = LimitLongOrder(longTargetPrice, instrument, units)
-	// fmt.Println(d.LongOrders)
 
 	//setting the short limit order target price
 	shortTargetPrice := (d.Low - .001)
 	d.ShortOrders = LimitShortOrder(shortTargetPrice, instrument, units)
-	// fmt.Println(d.ShortOrders)
 
-	d.LongOrderID = CreateOrderAndGetOrderID(instrument, units, d.LongOrders)
-	d.ShortOrderID = CreateOrderAndGetOrderID(instrument, units, d.ShortOrders)
-
-	fmt.Printf("Long OrderID: %s\n", d.LongOrderID)
-	fmt.Printf("Short OrderID: %s\n", d.ShortOrderID)
-
-	longOrderState := GetOrderState(d.LongOrderID)
-	shortOrderState := GetOrderState(d.ShortOrderID)
-
-	fmt.Printf("Long Order State: %s\n", longOrderState)
-	fmt.Printf("Short Order State: %s\n", shortOrderState)
+	d.LongOrderID = CreateOrderAndGetOrderID(instrument, longUnits, d.LongOrders)
+	d.ShortOrderID = CreateOrderAndGetOrderID(instrument, shortUnits, d.ShortOrders)
 
 	OrderStateChan := make(chan OrderState)
 
@@ -80,14 +70,16 @@ func (d Dragons) Init(instrument string, units string) {
 	go ContinuousGetOrderState(d.ShortOrderID, OrderStateChan)
 
 	for orderState := range OrderStateChan {
+		fmt.Printf("Long OrderID %s State: %s\n", d.LongOrderID, orderState.State)
+		fmt.Printf("Short OrderID %s State: %s\n", d.ShortOrderID, orderState.State)
 
-		if orderState.OrderID == d.LongOrderID {
-			d.HandleLongOrder(orderState)
-		}
-
-		if orderState.State == d.ShortOrderID {
-			d.HandleShortOrder(orderState)
-		}
+	// 	if orderState.OrderID == d.LongOrderID {
+	// 		d.HandleLongOrder(orderState)
+	// 	}
+	//
+	// 	if orderState.State == d.ShortOrderID {
+	// 		d.HandleShortOrder(orderState)
+	// 	}
 	}
 	wg.Wait()
 }
@@ -95,13 +87,14 @@ func (d Dragons) Init(instrument string, units string) {
 func (d *Dragons) HandleLongOrder(orderState OrderState) {
 	fmt.Printf("Long OrderID %s State: %s\n", d.LongOrderID, orderState.State)
 	fmt.Println("")
-
 	if orderState.State == "FILLED" {
 		fmt.Println("entering handle long order if")
 		// cancelOrderConfirmation := CancelOrder(d.ShortOrderID)
 		// fmt.Println(cancelOrderConfirmation)
 		_type := CancelOrderAndGetConfirmation(d.ShortOrderID)
 		fmt.Println(_type)
+	} else if orderState.State == "" {
+
 	}
 
 }

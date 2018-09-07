@@ -96,6 +96,10 @@ func CreateOrderAndGetOrderID(instrument string,
 	//creating the orders to oanda
 	createOrderByte, err := oanda.CreateOrder(ordersByte)
 
+	fmt.Println("STRING CREATE ORDERS BYTE:")
+ 	fmt.Println(string(createOrderByte))
+  fmt.Println("")
+
 	//checking CreateOrder error
 	if err != nil {
 		log.Println(err)
@@ -130,6 +134,9 @@ func GetOrderState(OrderID string) string {
 	if err != nil {
 		log.Println(err)
 	}
+
+	// fmt.Println("string getOrderDatByte:")
+	// fmt.Println(string(getOrderDataByte))
 
 	orderData := oanda.OrderStatus{}.UnmarshalOrderState(getOrderDataByte)
 	state := orderData.OrderStatusData.State
