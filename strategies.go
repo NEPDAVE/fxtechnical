@@ -64,15 +64,30 @@ func (d Dragons) Init(instrument string, units string) {
 	d.LongOrderID = CreateOrderAndGetOrderID(instrument, units, d.LongOrders)
 	d.ShortOrderID = CreateOrderAndGetOrderID(instrument, units, d.ShortOrders)
 
-	fmt.Printf("Long OrderID %s\n", d.LongOrderID)
-	fmt.Printf("Short OrderID %s\n", d.ShortOrderID)
+	fmt.Printf("Long OrderID: %s\n", d.LongOrderID)
+	fmt.Printf("Short OrderID: %s\n", d.ShortOrderID)
+
+	longOrderState := GetOrderState(d.LongOrderID)
+	shortOrderState := GetOrderState(d.ShortOrderID)
+
+	fmt.Printf("Long Order State: %s\n", longOrderState)
+	fmt.Printf("Short Order State: %s\n", shortOrderState)
 
 	SideFilledChan := make(chan SideFilled)
+	OrderStateChan := make(chan OrderState)
 
 	wg.Add(3)
-	go GetOrderState(d.LongOrderID)
+	go ContinuousGetOrderState(d.LongOrderID, OrderStateChan)
+	go ContinuousGetOrderState(d.ShortOrderID, OrderStateChan)
+
 	go GetOrderState(d.ShortOrderID)
 	go CancelOppositeOrder(d.LongOrderID, d.ShortOrderID, SideFilledChan)
+
+	for orderState := range OrderStateChan {
+    fmt.Println(orderState.State)
+		fmt.Println(orderState.OrderID)
+		fmt.Println("")
+	}
 
 	wg.Wait()
 

@@ -101,7 +101,7 @@ func CreateOrderAndGetOrderID(instrument string,
 
 	//accessing the orderID field and saving it to a variable
 	//orderID := orderCreateTransaction.OrderFillTransaction.OrderID
-	orderID := orderCreateTransaction.OrderCreateTransactionData.ID
+	orderID := orderCreateTransaction.OrderCreateTransaction.ID
 
 	return orderID
 }
@@ -118,15 +118,25 @@ func GetOrderState(OrderID string) string {
 	}()
 
 	//using the orderID to check the order status
-	getOrderStatusByte, err := oanda.GetOrderStatus(OrderID)
+	getOrderDataByte, err := oanda.GetOrderData(OrderID)
 
 	//checking the GetOrderState error
 	if err != nil {
 		log.Println(err)
 	}
 
-	orderStatus := oanda.OrderStatus{}.UnmarshalOrderStatus(getOrderStatusByte)
-	//FIXME this is assuming the order we want is the 0 element in the list
-	state := orderStatus.OrderStatusData[0].State
+	orderData := oanda.OrderStatus{}.UnmarshalOrderState(getOrderDataByte)
+	state := orderData.OrderStatusData.State
 	return state
+}
+
+//ContinuousGetOrderState uses an infinite for loop  to continually call
+//GetOrderState and send an OrderState struct over the channel
+func ContinuousGetOrderState(OrderID string, OrderStateChan chan OrderState) {
+	for {
+		orderState := OrderState{}
+		orderState.State = GetOrderState(OrderID)
+		orderState.OrderID = OrderID
+		OrderStateChan <- orderState
+	}
 }
