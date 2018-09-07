@@ -51,7 +51,7 @@ func (d Dragons) Init(instrument string, units string) {
 	// fmt.Println(d.High)
 	// fmt.Println(d.Low)
 
-  //setting the long limit order target price
+	//setting the long limit order target price
 	longTargetPrice := (d.High + .001)
 	d.LongOrders = LimitLongOrder(longTargetPrice, instrument, units)
 	// fmt.Println(d.LongOrders)
@@ -81,26 +81,42 @@ func (d Dragons) Init(instrument string, units string) {
 
 	for orderState := range OrderStateChan {
 
-		if orderState.OrderID == d.LongOrderID{
-			fmt.Printf("Long OrderID %s State: %s\n", d.LongOrderID, orderState.State)
-			fmt.Println("")
-
-			if orderState.State == "FILLED" {
-				cancelOrderConfirmation := CancelOrder(d.ShortOrderID)
-				fmt.Println(cancelOrderConfirmation)
-			}
+		if orderState.OrderID == d.LongOrderID {
+			d.HandleLongOrder(orderState)
 		}
 
-		if orderState.State == d.ShortOrderID{
-			fmt.Printf("Short OrderID %s State: %s\n", d.ShortOrderID, orderState.State)
-      fmt.Println("")
-			if orderState.OrderID == "FILLED" {
-				cancelOrderConfirmation := CancelOrder(d.LongOrderID)
-				fmt.Println(cancelOrderConfirmation)
-			}
+		if orderState.State == d.ShortOrderID {
+			d.HandleShortOrder(orderState)
 		}
 	}
-  wg.Wait()
+	wg.Wait()
+}
+
+func (d *Dragons) HandleLongOrder(orderState OrderState) {
+	fmt.Printf("Long OrderID %s State: %s\n", d.LongOrderID, orderState.State)
+	fmt.Println("")
+
+	if orderState.State == "FILLED" {
+		fmt.Println("entering handle long order if")
+		// cancelOrderConfirmation := CancelOrder(d.ShortOrderID)
+		// fmt.Println(cancelOrderConfirmation)
+		_type := CancelOrderAndGetConfirmation(d.ShortOrderID)
+		fmt.Println(_type)
+	}
+
+}
+
+func (d *Dragons) HandleShortOrder(orderState OrderState) {
+	fmt.Printf("Short OrderID %s State: %s\n", d.ShortOrderID, orderState.State)
+	fmt.Println("")
+	if orderState.OrderID == "FILLED" {
+		fmt.Println("entering handle short order if")
+		// cancelOrderConfirmation := CancelOrder(d.LongOrderID)
+		// fmt.Println(cancelOrderConfirmation)
+		_type := CancelOrderAndGetConfirmation(d.LongOrderID)
+		fmt.Println(_type)
+	}
+
 }
 
 /*

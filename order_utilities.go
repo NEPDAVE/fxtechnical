@@ -4,7 +4,7 @@ import (
 	"fmt"
 	oanda "github.com/nepdave/oanda"
 	"log"
-	"sync"
+	//"sync"
 )
 
 /*
@@ -24,7 +24,6 @@ OrderState holds the order state
 //OrderState holds the Instrument order state and an OrderID
 type OrderState struct {
 	Instrument string
-	mu         sync.Mutex
 	State      string //closed/pending/open.
 	OrderID    string //OrderID of order
 	Error      error
@@ -37,13 +36,22 @@ type SideFilled struct {
 }
 
 //CancelOppositeOrder cancels the opposite long/short that was not filled
-func CancelOrder(OrderID string) string {
-			cancelOrderByte, err := oanda.CancelOrder(OrderID)
-			if err != nil {
-				log.Println(err)
-			}
+func CancelOrder(OrderID string) []byte {
+	cancelOrderByte, err := oanda.CancelOrder(OrderID)
 
-			return fmt.Sprintf(string(cancelOrderByte))
+	if err != nil {
+		log.Println(err)
+	}
+
+	fmt.Println("cancel order returning cancelOrderByte")
+	return cancelOrderByte
+}
+
+func CancelOrderAndGetConfirmation(OrderID string) string {
+	cancelOrderByte := CancelOrder(OrderID)
+	orderCancelTransaction := oanda.OrderCancelTransaction{}.UnmarshalOrderCancelTransaction(cancelOrderByte)
+	_type := orderCancelTransaction.OrderCancelTransactionData.Type
+	return _type
 }
 
 //CancelOppositeOrder cancels the opposite long/short that was not filled
@@ -82,23 +90,11 @@ func CreateOrderAndGetOrderID(instrument string,
 
 	orders.Order.Units = units
 
-	fmt.Println("ORDERS:")
-	fmt.Println(orders)
-	fmt.Println("")
-
 	//creating []byte order data for the order HTTP body
 	ordersByte := oanda.Orders{}.MarshalOrders(orders)
 
-	fmt.Println("ORDERS BYTE:")
-	fmt.Println(string(ordersByte))
-	fmt.Println("")
-
 	//creating the orders to oanda
 	createOrderByte, err := oanda.CreateOrder(ordersByte)
-
-	fmt.Println("STRING CREATE ORDERS BYTE:")
-	fmt.Println(string(createOrderByte))
-	fmt.Println("")
 
 	//checking CreateOrder error
 	if err != nil {
