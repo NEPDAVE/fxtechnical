@@ -73,24 +73,34 @@ func (d Dragons) Init(instrument string, units string) {
 	fmt.Printf("Long Order State: %s\n", longOrderState)
 	fmt.Printf("Short Order State: %s\n", shortOrderState)
 
-	SideFilledChan := make(chan SideFilled)
 	OrderStateChan := make(chan OrderState)
 
-	wg.Add(3)
+	wg.Add(2)
 	go ContinuousGetOrderState(d.LongOrderID, OrderStateChan)
 	go ContinuousGetOrderState(d.ShortOrderID, OrderStateChan)
 
-	go GetOrderState(d.ShortOrderID)
-	go CancelOppositeOrder(d.LongOrderID, d.ShortOrderID, SideFilledChan)
-
 	for orderState := range OrderStateChan {
-    fmt.Println(orderState.State)
-		fmt.Println(orderState.OrderID)
-		fmt.Println("")
+
+		if orderState.OrderID == d.LongOrderID{
+			fmt.Printf("Long OrderID %s State: %s\n", d.LongOrderID, orderState.State)
+			fmt.Println("")
+
+			if orderState.State == "FILLED" {
+				cancelOrderConfirmation := CancelOrder(d.ShortOrderID)
+				fmt.Println(cancelOrderConfirmation)
+			}
+		}
+
+		if orderState.State == d.ShortOrderID{
+			fmt.Printf("Short OrderID %s State: %s\n", d.ShortOrderID, orderState.State)
+      fmt.Println("")
+			if orderState.OrderID == "FILLED" {
+				cancelOrderConfirmation := CancelOrder(d.LongOrderID)
+				fmt.Println(cancelOrderConfirmation)
+			}
+		}
 	}
-
-	wg.Wait()
-
+  wg.Wait()
 }
 
 /*

@@ -67,10 +67,10 @@ func MarketShortOrder(bid float64, ask float64, instrument string,
 func LimitLongOrder(targetPrice float64, instrument string,
 	units string) oanda.Orders {
 	//tp/sl ratio is 3 to 1
-	stopLossPrice := fmt.Sprintf("%.5f", (targetPrice - .001))
+	stopLossPrice := fmt.Sprintf("%.5f", (targetPrice - .002))
 	stopLossOnFill := oanda.StopLossOnFill{TimeInForce: "GTC", Price: stopLossPrice}
 
-	takeProfitPrice := fmt.Sprintf("%.5f", targetPrice + .003)
+	takeProfitPrice := fmt.Sprintf("%.5f", (targetPrice + .006))
 	takeProfitOnFill := oanda.TakeProfitOnFill{TimeInForce: "GTC", Price: takeProfitPrice}
 
 	stringTargetPrice := fmt.Sprintf("%.5f", targetPrice)
@@ -96,10 +96,10 @@ func LimitLongOrder(targetPrice float64, instrument string,
 func LimitShortOrder(targetPrice float64, instrument string,
 	units string) oanda.Orders {
 	//tp/sl ratio is 3 to 1
-	stopLossPrice := fmt.Sprintf("%.5f", (targetPrice + .001))
+	stopLossPrice := fmt.Sprintf("%.5f", (targetPrice + .002))
 	stopLossOnFill := oanda.StopLossOnFill{TimeInForce: "GTC", Price: stopLossPrice}
 
-	takeProfitPrice := fmt.Sprintf("%.5f", (targetPrice - .003))
+	takeProfitPrice := fmt.Sprintf("%.5f", (targetPrice - .006))
 	takeProfitOnFill := oanda.TakeProfitOnFill{TimeInForce: "GTC", Price: takeProfitPrice}
 
 	stringTargetPrice := fmt.Sprintf("%.5f", targetPrice)

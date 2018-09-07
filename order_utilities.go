@@ -37,6 +37,16 @@ type SideFilled struct {
 }
 
 //CancelOppositeOrder cancels the opposite long/short that was not filled
+func CancelOrder(OrderID string) string {
+			cancelOrderByte, err := oanda.CancelOrder(OrderID)
+			if err != nil {
+				log.Println(err)
+			}
+
+			return fmt.Sprintf(string(cancelOrderByte))
+}
+
+//CancelOppositeOrder cancels the opposite long/short that was not filled
 func CancelOppositeOrder(longOrderID string,
 	shortOrderID string, sideFilledChan chan SideFilled) {
 
