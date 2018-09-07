@@ -69,6 +69,10 @@ func (d Dragons) Init(instrument string, units string) {
 	go ContinuousGetOrderState(d.LongOrderID, OrderStateChan)
 	go ContinuousGetOrderState(d.ShortOrderID, OrderStateChan)
 
+	bid, ask := BidAsk("GBP_USD")
+	fmt.Println(bid)
+	fmt.Println(ask)
+
 	for orderState := range OrderStateChan {
 		fmt.Printf("Long OrderID %s State: %s\n", d.LongOrderID, orderState.State)
 		fmt.Printf("Short OrderID %s State: %s\n", d.ShortOrderID, orderState.State)
