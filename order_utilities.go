@@ -154,3 +154,82 @@ func ContinuousGetOrder(OrderID string, OrderStateChan chan OrderState) {
 		OrderStateChan <- orderState
 	}
 }
+
+
+/*
+{
+	"orderCreateTransaction": {
+		"type": "LIMIT_ORDER",
+		"instrument": "GBP_USD",
+		"units": "2",
+		"price": "1.31242",
+		"timeInForce": "GTC",
+		"triggerCondition": "DEFAULT",
+		"partialFill": "DEFAULT",
+		"positionFill": "DEFAULT",
+		"takeProfitOnFill": {
+			"price": "1.31842",
+			"timeInForce": "GTC"
+		},
+		"stopLossOnFill": {
+			"price": "1.31042",
+			"timeInForce": "GTC"
+		},
+		"reason": "CLIENT_ORDER",
+		"id": "10782",
+		"accountID": "101-001-6395930-001",
+		"userID": 6395930,
+		"batchID": "10782",
+		"requestID": "24460451218915493",
+		"time": "2018-09-13T17:12:07.249639551Z"
+	},
+	"orderFillTransaction": {
+		"type": "ORDER_FILL",
+		"orderID": "10782",
+		"instrument": "GBP_USD",
+		"units": "2",
+		"requestedUnits": "2",
+		"price": "1.31113",
+		"pl": "0.0000",
+		"financing": "0.0000",
+		"commission": "0.0000",
+		"accountBalance": "100346.9816",
+		"gainQuoteHomeConversionFactor": "1",
+		"lossQuoteHomeConversionFactor": "1",
+		"guaranteedExecutionFee": "0.0000",
+		"halfSpreadCost": "0.0002",
+		"fullVWAP": "1.31113",
+		"reason": "LIMIT_ORDER",
+		"tradeOpened": {
+			"price": "1.31113",
+			"tradeID": "10783",
+			"units": "2",
+			"guaranteedExecutionFee": "0.0000",
+			"halfSpreadCost": "0.0002",
+			"initialMarginRequired": "0.1311"
+		},
+		"fullPrice": {
+			"closeoutBid": "1.31073",
+			"closeoutAsk": "1.31138",
+			"timestamp": "2018-09-13T17:12:06.390456028Z",
+			"bids": [{
+				"price": "1.31098",
+				"liquidity": "10000000"
+			}],
+			"asks": [{
+				"price": "1.31113",
+				"liquidity": "10000000"
+			}]
+		},
+		"id": "10783",
+		"accountID": "101-001-6395930-001",
+		"userID": 6395930,
+		"batchID": "10782",
+		"requestID": "24460451218915493",
+		"time": "2018-09-13T17:12:07.249639551Z"
+	},
+	"relatedTransactionIDs": ["10782", "10783", "10784", "10785"],
+	"lastTransactionID": "10785"
+}
+
+*/
