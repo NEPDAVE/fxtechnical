@@ -77,16 +77,20 @@ func (d Dragons) Init(instrument string, units string) {
 
 	if fAsk >= d.High {
 		fmt.Printf("Ask is higher than previous three hour high by %.5f:\n", askDiff )
+    //place MarketLongOrder
 	} else if fAsk < d.High{
 		fmt.Printf("Ask is lower than previous three hour high by %.5f:\n", askDiff)
+    //place LimitLongOrder
 	}else{
 		fmt.Println("wtf ask")
 	}
 
 	if fBid <= d.Low {
 		fmt.Printf("Bid is lower than previous three hour low by %.5f:\n", bidDiff)
+    //place MarketShortOrder
 	} else if fBid > d.Low{
 		fmt.Printf("Bid is higher than previous three hour low by %.5f:\n", bidDiff)
+    //place LimitShortOrder
 	}else{
 		fmt.Println("wtf bid")
 	}
@@ -141,27 +145,19 @@ func (d Dragons) Init(instrument string, units string) {
 	wg.Wait()
 }
 
-func (d *Dragons) HandleLongOrder(orderState OrderState) {
-	fmt.Printf("Long OrderID %s State: %s\n", d.LongOrderID, orderState.State)
-	fmt.Println("")
-	if orderState.State == "FILLED" {
-		fmt.Println("entering handle long order if")
-		// cancelOrderConfirmation := CancelOrder(d.ShortOrderID)
-		// fmt.Println(cancelOrderConfirmation)
-		_type := CancelOrderAndGetConfirmation(d.ShortOrderID)
-		fmt.Println(_type)
-	}
+//HandleLongOrder creates either a LimitLongOrder or a MarketLongOrder
+//depending on the current Ask in relation to the previous three hour high
+func (d *Dragons) HandleLongOrder(orderType string, ask float64, high float64, units string) {
+
+  if orderType == "LIMIT" {
+
+
+  }
+
 }
 
-func (d *Dragons) HandleShortOrder(orderState OrderState) {
-	fmt.Printf("Short OrderID %s State: %s\n", d.ShortOrderID, orderState.State)
-	fmt.Println("")
-	if orderState.OrderID == "FILLED" {
-		fmt.Println("entering handle short order if")
-		// cancelOrderConfirmation := CancelOrder(d.LongOrderID)
-		// fmt.Println(cancelOrderConfirmation)
-		_type := CancelOrderAndGetConfirmation(d.LongOrderID)
-		fmt.Println(_type)
-	}
+//HandleShortOrder creates either a LimitShortOrder or a MarketShortOrder
+//depending on the current Bid in relation to the previous three hour low
+func (d *Dragons) HandleShortOrder(orderType string, bid float64, low float64, units string) {
 
 }
