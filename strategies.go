@@ -168,7 +168,7 @@ func (r *Raider) ExecuteContinuosRaid(instrument string, units string, RaiderCha
 			//doing exspensive IO calls but need to verify OrderState
 			r.OrderID = CreateClientOrdersAndGetOrderID(instrument, units,
 				raider.Orders)
-			r.OrderState = GetOrder(r.OrderID)
+			r.OrderState = GetOrderState(r.OrderID)
 			mu.Unlock()
 		} else {
 			fmt.Printf("Create Order Code = %d\n", raider.CreateOrderCode)
@@ -184,7 +184,7 @@ func (r *Raider) ExecuteContinuousGetOrder() {
 
 	for {
 		mu.Lock()
-		r.OrderState = GetOrder(r.OrderID)
+		r.OrderState = GetOrderState(r.OrderID)
 		mu.Unlock()
 		fmt.Println("")
 		fmt.Printf("ORDER-ID %s %s STATE = %s\n", r.OrderID, r.Instrument, r.OrderState)

@@ -117,9 +117,9 @@ func CreateClientOrdersAndGetOrderID(instrument string,
 	return orderID
 }
 
-//GetOrder uses an OrderID to to call oanda.GetOrder() and then unmarshals
+//GetOrderState uses an OrderID to to call oanda.GetOrder() and then unmarshals
 //the struct and returns the order state IE open/pending/closed
-func GetOrder(OrderID string) string {
+func GetOrderState(orderID string) string {
 	//capturing panic raised by Unmarshaling returned getOrderStatusByte
 	defer func() {
 		if err := recover(); err != nil {
@@ -129,14 +129,14 @@ func GetOrder(OrderID string) string {
 	}()
 
 	//using the orderID to check the order status
-	getOrderByte, err := oanda.GetOrder(OrderID)
+	getOrderByte, err := oanda.GetOrder(orderID)
 
 	//checking the GetOrderState error
 	if err != nil {
 		log.Println(err)
 	}
 
-	fmt.Println("string getOrderDataByte:")
+	fmt.Println("string getOrderByte:")
 	fmt.Println(string(getOrderByte))
 
 	order := oanda.Order{}.UnmarshalOrder(getOrderByte)
@@ -149,7 +149,7 @@ func GetOrder(OrderID string) string {
 func ContinuousGetOrder(OrderID string, OrderStateChan chan OrderState) {
 	for {
 		orderState := OrderState{}
-		orderState.State = GetOrder(OrderID)
+		orderState.State = GetOrderState(OrderID)
 		orderState.OrderID = OrderID
 		OrderStateChan <- orderState
 	}
