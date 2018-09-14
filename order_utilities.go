@@ -155,7 +155,6 @@ func ContinuousGetOrder(OrderID string, OrderStateChan chan OrderState) {
 	}
 }
 
-
 /*
 {
 	"orderCreateTransaction": {
