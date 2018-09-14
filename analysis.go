@@ -54,7 +54,6 @@ func StandardDeviation(average float64, pricesSlice []float64) float64 {
 //HighAndLow returns the highest and lowest price from a candles slice
 func HighAndLow(candles *oanda.Candles) (float64, float64) {
 	//setting values to first element to ensure a valid value is comparable
-	fmt.Println(candles.Candles[0])
 	high, err := strconv.ParseFloat(candles.Candles[0].Mid.High, 64)
 
 	if err != nil {

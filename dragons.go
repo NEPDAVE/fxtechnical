@@ -5,7 +5,6 @@ import (
 	oanda "github.com/nepdave/oanda"
 	"log"
 	"math"
-	"strconv"
 	//"sync"
 )
 
@@ -18,7 +17,7 @@ import (
 
 new flow for alogorithm
 init will set all the needed variables
--*/
+*/
 
 /*
 ***************************
@@ -28,14 +27,15 @@ Dragons is a trading algorithm that implements the London daybreak strategy
 
 //Dragons holds the trading alogorithm state and neccesary data
 type Dragons struct {
-	Instrument  string
-	High        float64 //high from the last three hours
-	Low         float64 //low from the last three hours
-	Bid         float64 //current Bid
-	Ask         float64 //current Ask
-	LongOrders  OrderData
-	ShortOrders OrderData
-	SideFilled  SideFilled //no side/long/short
+	Instrument         string
+	High               float64 //high from the last three hours
+	Low                float64 //low from the last three hours
+	Bid                float64 //current Bid
+	Ask                float64 //current Ask
+	MarketOrderCreated bool
+	LongOrders         OrderData
+	ShortOrders        OrderData
+	SideFilled         SideFilled //no side/long/short
 }
 
 //OrderData holds the key information about the Order
@@ -49,25 +49,35 @@ type OrderData struct {
 //Init kicks off the goroutines to create orders and check orders
 func (d Dragons) Init(instrument string, units string) {
 	//var wg sync.WaitGroup
+	var longUnits = units
+	var shortUnits = "-" + units //adding -(negative sign) to denote short order
+
 	d.Instrument = instrument
 	d.SetHighAndLow()
 	d.SetBidAsk()
 
-
-
 	bidDiff := math.Abs(d.Bid - d.Low)
 	askDiff := math.Abs(d.Ask - d.High)
 
+	//checking current market prices and then placing the correct type of order
 	if d.Ask >= d.High {
 		fmt.Printf("Ask is higher than previous three hour high by %.5f:\n", askDiff)
 		//place MarketLongOrder
+		d.LongOrders.Orders = MarketLongOrder(d.Bid, d.Ask, d.Instrument, longUnits)
+		d.LongOrders.OrderID = CreateClientOrdersAndGetOrderID(d.LongOrders.Orders)
+		fmt.Println(d.LongOrders.OrderID)
+
 	} else if d.Ask < d.High {
 		fmt.Printf("Ask is lower than previous three hour high by %.5f:\n", askDiff)
 		//place LimitLongOrder
+		targetPrice := (d.High + .001) //FIXME need to work on order structure...
+		d.LongOrders.Orders = LimitLongOrder(targetPrice, d.Instrument, longUnits)
+
 	} else {
-		fmt.Println("wtf ask")
+		fmt.Println("wtf ask...")
 	}
 
+	//
 	if d.Bid <= d.Low {
 		fmt.Printf("Bid is lower than previous three hour low by %.5f:\n", bidDiff)
 		//place MarketShortOrder
@@ -95,25 +105,10 @@ func (d *Dragons) SetHighAndLow() {
 
 //SetBidAsk sets the current Bid and Ask for the Dragons struct
 func (d *Dragons) SetBidAsk() {
-	//getting the current bid and ask
-	bid, ask := BidAsk(d.Instrument)
-
-	//converting bid to float
-	fBid, err := strconv.ParseFloat(bid, 64)
-
-	if err != nil {
-		log.Println(err)
-	}
-
-	//converting ask to float
-	fAsk, err := strconv.ParseFloat(ask, 64)
-
-	if err != nil {
-		log.Println(err)
-	}
-
-	d.Bid = fBid
-	d.Ask = fAsk
+	//getting the current highest bid and  lowest ask
+	pricesData := PricesData{}.Init(d.Instrument)
+	d.Bid = pricesData.Bid
+	d.Ask = pricesData.Ask
 }
 
 //HandleLongOrder creates either a LimitLongOrder or a MarketLongOrder
@@ -133,10 +128,6 @@ func (d *Dragons) HandleShortOrder(orderType string) {
 }
 
 /*
-// put this somewhere?
-// longUnits := units
-// //making sure to add -(negative sign) to denote short order
-// shortUnits := "-" + units
 
 
 //setting the long limit order target price
