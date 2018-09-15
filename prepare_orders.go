@@ -87,8 +87,6 @@ func LimitLongOrder(targetPrice float64, instrument string,
 			PositionFill:     "DEFAULT"},
 	}
 
-	fmt.Println(stringTargetPrice)
-
 	return orders
 }
 
@@ -115,11 +113,6 @@ func LimitShortOrder(targetPrice float64, instrument string,
 			Type:             "LIMIT",
 			PositionFill:     "DEFAULT"},
 	}
-
-	fmt.Println(stringTargetPrice)
-	fmt.Println("LIMIT SHORT ORDER:")
-	fmt.Println(orders)
-	fmt.Println("")
 
 	return orders
 }

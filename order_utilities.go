@@ -17,23 +17,9 @@ GetOrderStatus()
 
 /*
 ***************************
-OrderState holds the order state
+OrderUtilities is a collection of methods for doing operations on orders
 ***************************
 */
-
-//OrderState holds the Instrument order state and an OrderID
-type OrderState struct {
-	Instrument string
-	State      string //closed/pending/open.
-	OrderID    string //OrderID of order
-	Error      error
-}
-
-//SideFilled holds the data for whether or not a long or short order was filled
-type SideFilled struct {
-	Long  bool
-	Short bool
-}
 
 //CancelOrder cancels an order and retursns a []byte slice to unmarshal
 func CancelOrder(OrderID string) []byte {
@@ -53,28 +39,6 @@ func CancelOrderAndGetConfirmation(OrderID string) string {
 	orderCancelTransaction := oanda.OrderCancelTransaction{}.UnmarshalOrderCancelTransaction(cancelOrderByte)
 	_type := orderCancelTransaction.OrderCancelTransactionData.Type
 	return _type
-}
-
-//CancelOppositeOrder cancels the opposite long/short that was not filled
-func CancelOppositeOrder(longOrderID string,
-	shortOrderID string, sideFilledChan chan SideFilled) {
-
-	for sideFilled := range sideFilledChan {
-
-		if sideFilled.Long == true {
-			cancelOrderByte, err := oanda.CancelOrder(shortOrderID)
-			if err != nil {
-				log.Println(err)
-			}
-			fmt.Println(string(cancelOrderByte))
-		} else if sideFilled.Short == true {
-			cancelOrderByte, err := oanda.CancelOrder(longOrderID)
-			if err != nil {
-				log.Println(err)
-			}
-			fmt.Println(string(cancelOrderByte))
-		}
-	}
 }
 
 //CreateClientOrdersAndGetOrderID sets the number of units to trade then creates the order using
@@ -146,7 +110,7 @@ func GetOrderState(orderID string) string {
 
 //ContinuousGetOrder uses an infinite for loop  to continually call
 //GetOrder and send an OrderState struct over the channel
-func ContinuousGetOrder(OrderID string, OrderStateChan chan OrderState) {
+func ContinuousGetOrder(OrderID string, OrderStateChan chan string) {
 	for {
 		orderState := OrderState{}
 		orderState.State = GetOrderState(OrderID)
@@ -154,6 +118,45 @@ func ContinuousGetOrder(OrderID string, OrderStateChan chan OrderState) {
 		OrderStateChan <- orderState
 	}
 }
+
+//CreateClientOrders sets the number of units to trade then creates the order
+//using the oanda package CreateOrder primitive function and returns an
+//OrderCreateTransaction
+func CreateClientOrders(instrument string, units string,
+	orders oanda.ClientOrders) oanda.OrderCreateTransaction {
+	//capturing panic raised by Unmarshaling returned createOrderByte
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("UnmarshalOrderCreateTransaction() panicked")
+			log.Println(err)
+		}
+	}()
+
+	orders.Orders.Units = units
+
+	//creating []byte order data for the order HTTP body
+	ordersByte := oanda.ClientOrders{}.MarshalClientOrders(orders)
+
+	//creating the orders to oanda
+	createOrdersByte, err := oanda.CreateOrder(ordersByte)
+
+	fmt.Println("STRING CREATE ORDERS BYTE:")
+	fmt.Println(string(createOrderByte))
+	fmt.Println("")
+
+	//checking CreateOrder error
+	if err != nil {
+		log.Println(err)
+	}
+
+	//unmarshaling the returned createOrdersByte into a native struct
+	orderCreateTransaction := oanda.OrderCreateTransaction{}.
+		UnmarshalOrderCreateTransaction(createOrdersByte)
+
+	return orderCreateTransaction
+
+}
+
 
 /*
 {

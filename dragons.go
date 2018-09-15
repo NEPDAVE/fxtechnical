@@ -5,7 +5,6 @@ import (
 	oanda "github.com/nepdave/oanda"
 	"log"
 	"math"
-	//"sync"
 )
 
 /*
@@ -17,6 +16,16 @@ import (
 
 new flow for alogorithm
 init will set all the needed variables
+
+In the first instance, an order is a request to make a trade to open a position.
+
+A trade is made when the order is matched to a counterparty, ie if you are a buyer, you've found a seller to sell to you, or vice versa.
+
+Once a trade is opened, you hold a position. A position is exposure to the market and will move the balance in your account up or down in line with market movements.
+
+Finally you place an order to close a position which will result in an trade opposite to the direction you initially took, eg if you initially bought, now you sell to close.
+
+And now you hold no position.
 */
 
 /*
@@ -28,66 +37,55 @@ Dragons is a trading algorithm that implements the London daybreak strategy
 //Dragons holds the trading alogorithm state and neccesary data
 type Dragons struct {
 	Instrument         string
+	LongUnits          string
+	ShortUnits         string
 	High               float64 //high from the last three hours
 	Low                float64 //low from the last three hours
-	Bid                float64 //current Bid
-	Ask                float64 //current Ask
+	Bid                float64 //current highest Bid
+	Ask                float64 //current lowest Ask
+	BidDiff            float64 //abv difference between the Bid and the Low
+	AskDiff            float64 //abv difference between the Ask and the High
 	MarketOrderCreated bool
 	LongOrders         OrderData
 	ShortOrders        OrderData
-	SideFilled         SideFilled //no side/long/short
 }
 
 //OrderData holds the key information about the Order
 type OrderData struct {
-	Units   string             //number of long units to trade
-	OrderID string             //OrderID of current long order
-	TradeID string             //FIXME TradeID of Order turned Trade?
-	Orders  oanda.ClientOrders //Order SL/TP Limit/Market data
+	Units                  string             //number of units to trade
+	OrderID                string             //OrderID of current long order
+	TradeID                string             //FIXME TradeID of Order turned Trade?
+	Orders           oanda.ClientOrders //Order SL/TP Limit/Market data
+	OrderCreateTransaction oanda.OrderCreateTransaction
 }
 
 //Init kicks off the goroutines to create orders and check orders
 func (d Dragons) Init(instrument string, units string) {
-	//var wg sync.WaitGroup
-	var longUnits = units
-	var shortUnits = "-" + units //adding -(negative sign) to denote short order
-
 	d.Instrument = instrument
+	d.LongUnits = units
+	d.ShortUnits = "-" + units //adding -(negative sign) to denote short order
 	d.SetHighAndLow()
 	d.SetBidAsk()
+	d.BidDiff = math.Abs(d.Bid - d.Low)
+	d.AskDiff = math.Abs(d.Ask - d.High)
+	d.CreateLongOrders() //decides to create limit or market orders and returns an OrderCreateTransaction
+	d.CreateShortOrders() //decides to create limit or market orders and returns an OrderCreateTransaction
 
-	bidDiff := math.Abs(d.Bid - d.Low)
-	askDiff := math.Abs(d.Ask - d.High)
+	//d.HandleLongOrders(orderCreateTransaction) //uses the data in the
+	//OrderCreateTransaction to determine whether to monitor an order or a trade
 
-	//checking current market prices and then placing the correct type of order
-	if d.Ask >= d.High {
-		fmt.Printf("Ask is higher than previous three hour high by %.5f:\n", askDiff)
-		//place MarketLongOrder
-		d.LongOrders.Orders = MarketLongOrder(d.Bid, d.Ask, d.Instrument, longUnits)
-		d.LongOrders.OrderID = CreateClientOrdersAndGetOrderID(d.LongOrders.Orders)
-		fmt.Println(d.LongOrders.OrderID)
+	//d.HandleShortOrders(orderCreateTransaction) //uses the data in the
+	//OrderCreateTransaction to determine whether to monitor an order or a trade
 
-	} else if d.Ask < d.High {
-		fmt.Printf("Ask is lower than previous three hour high by %.5f:\n", askDiff)
-		//place LimitLongOrder
-		targetPrice := (d.High + .001) //FIXME need to work on order structure...
-		d.LongOrders.Orders = LimitLongOrder(targetPrice, d.Instrument, longUnits)
 
-	} else {
-		fmt.Println("wtf ask...")
-	}
 
-	//
-	if d.Bid <= d.Low {
-		fmt.Printf("Bid is lower than previous three hour low by %.5f:\n", bidDiff)
-		//place MarketShortOrder
-	} else if d.Bid > d.Low {
-		fmt.Printf("Bid is higher than previous three hour low by %.5f:\n", bidDiff)
-		//place LimitShortOrder
-	} else {
-		fmt.Println("wtf bid")
-	}
+	//FIXME need to "handle" orderCreateTransactions vs orderFillTransactions to
+	//know whether to check on an order or a trade
+	//FIXME call function that tells if it's still an order or a trade...
+	//FIXME if needed call function to cancel opposite order yo!
+	//FIXME call func to monitor situation. did we win or loose?
 
+	fmt.Printf("%s dragons in the air\n", instrument)
 }
 
 //SetHighAndLow sets the previous three hour High and Low for the Dragons struct
@@ -113,17 +111,59 @@ func (d *Dragons) SetBidAsk() {
 
 //HandleLongOrder creates either a LimitLongOrder or a MarketLongOrder
 //depending on the current Ask in relation to the previous three hour high
-func (d *Dragons) HandleLongOrder(orderType string) {
+func (d *Dragons) CreateLongOrders() {
+	//checking current market prices and then placing the correct type of Long
+	//depening on current price action
+	if d.Ask >= d.High && d.MarketOrderCreated == false {
+		fmt.Printf("Ask is higher than previous three hour high by %.5f:\n", d.AskDiff)
 
-	if orderType == "LIMIT" {
+		//place MarketLongOrder
+		d.LongOrders.Orders = MarketLongOrder(d.Bid, d.Ask, d.Instrument, d.LongUnits)
+		d.LongOrders.OrderID = CreateClientOrdersAndGetOrderID(d.Instrument,
+			d.LongUnits, d.LongOrders.Orders)
+		d.MarketOrderCreated = true
 
+	} else if d.Ask < d.High {
+		fmt.Printf("Ask is lower than previous three hour high by %.5f:\n", d.AskDiff)
+
+		//place LimitLongOrder
+		targetPrice := (d.High + .001) //FIXME need to work on order structure...
+		d.LongOrders.Orders = LimitLongOrder(targetPrice, d.Instrument, d.LongUnits)
+		d.LongOrders.OrderID = CreateClientOrdersAndGetOrderID(d.Instrument,
+			d.LongUnits, d.LongOrders.Orders)
+
+	} else {
+		fmt.Println("wtf ask...")
 	}
 
 }
 
 //HandleShortOrder creates either a LimitShortOrder or a MarketShortOrder
 //depending on the current Bid in relation to the previous three hour low
-func (d *Dragons) HandleShortOrder(orderType string) {
+func (d *Dragons) CreateShortOrders() {
+	//checking current market prices and then placing the correct type of Short
+	//depening on current price action
+	if d.Bid <= d.Low && d.MarketOrderCreated == false {
+		fmt.Printf("Bid is lower than previous three hour low by %.5f:\n", d.BidDiff)
+
+		//place MarketShortOrder
+		d.ShortOrders.Orders = MarketShortOrder(d.Bid, d.Ask, d.Instrument, d.ShortUnits)
+		d.ShortOrders.OrderID = CreateClientOrdersAndGetOrderID(d.Instrument,
+			d.ShortUnits, d.ShortOrders.Orders)
+		d.MarketOrderCreated = true
+
+	} else if d.Bid > d.Low {
+		fmt.Printf("Bid is higher than previous three hour low by %.5f:\n", d.BidDiff)
+
+		//place LimitShortOrder
+		targetPrice := (d.Low - .001) //FIXME need to work on order structure
+		d.ShortOrders.Orders = LimitShortOrder(targetPrice, d.Instrument, d.ShortUnits)
+		d.ShortOrders.OrderID = CreateClientOrdersAndGetOrderID(d.Instrument,
+			d.ShortUnits, d.ShortOrders.Orders)
+
+	} else {
+		fmt.Println("wtf bid")
+	}
 
 }
 
@@ -144,8 +184,8 @@ func (d *Dragons) HandleShortOrder(orderType string) {
 	shortTargetPrice := (fAsk + .010)
 	d.ShortOrders = LimitShortOrder(shortTargetPrice, instrument, units)
 
-	d.LongOrderID = CreateClientOrdersAndGetOrderID(instrument, longUnits, d.LongOrders)
-	d.ShortOrderID = CreateClientOrdersAndGetOrderID(instrument, shortUnits, d.ShortOrders)
+	d.LongOrderID = CreateClientOrdersAndGetOrderID(instrument, d.LongUnits, d.LongOrders)
+	d.ShortOrderID = CreateClientOrdersAndGetOrderID(instrument, d.ShortUnits, d.ShortOrders)
 
 	fmt.Printf("Long OrderID: %s\n", d.LongOrderID)
 	fmt.Printf("Short OrderID: %s\n", d.ShortOrderID)
