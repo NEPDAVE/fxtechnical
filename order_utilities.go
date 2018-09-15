@@ -157,7 +157,6 @@ func CreateClientOrders(instrument string, units string,
 
 }
 
-
 /*
 {
 	"orderCreateTransaction": {

@@ -14,7 +14,8 @@ import (
 -
 -A position is the total of all trades for a specific market.
 
-new flow for alogorithm
+new flow for algorithm
+
 init will set all the needed variables
 
 In the first instance, an order is a request to make a trade to open a position.
@@ -55,11 +56,12 @@ type OrderData struct {
 	Units                  string             //number of units to trade
 	OrderID                string             //OrderID of current long order
 	TradeID                string             //FIXME TradeID of Order turned Trade?
-	Orders           oanda.ClientOrders //Order SL/TP Limit/Market data
+	Orders                 oanda.ClientOrders //Order SL/TP Limit/Market data
 	OrderCreateTransaction oanda.OrderCreateTransaction
 }
 
-//Init kicks off the goroutines to create orders and check orders
+//Init kicks off the algorithm to create orders, check orders/trades and cancel
+//orders and/or close trades
 func (d Dragons) Init(instrument string, units string) {
 	d.Instrument = instrument
 	d.LongUnits = units
@@ -68,7 +70,7 @@ func (d Dragons) Init(instrument string, units string) {
 	d.SetBidAsk()
 	d.BidDiff = math.Abs(d.Bid - d.Low)
 	d.AskDiff = math.Abs(d.Ask - d.High)
-	d.CreateLongOrders() //decides to create limit or market orders and returns an OrderCreateTransaction
+	d.CreateLongOrders()  //decides to create limit or market orders and returns an OrderCreateTransaction
 	d.CreateShortOrders() //decides to create limit or market orders and returns an OrderCreateTransaction
 
 	//d.HandleLongOrders(orderCreateTransaction) //uses the data in the
@@ -77,8 +79,9 @@ func (d Dragons) Init(instrument string, units string) {
 	//d.HandleShortOrders(orderCreateTransaction) //uses the data in the
 	//OrderCreateTransaction to determine whether to monitor an order or a trade
 
-
-
+	//FIXME need to add trailing stops to order preparations
+  //FIXME need to work on order structure and making sure targetPrice/tp/sl
+	//data is optimal 
 	//FIXME need to "handle" orderCreateTransactions vs orderFillTransactions to
 	//know whether to check on an order or a trade
 	//FIXME call function that tells if it's still an order or a trade...
@@ -109,63 +112,93 @@ func (d *Dragons) SetBidAsk() {
 	d.Ask = pricesData.Ask
 }
 
-//HandleLongOrder creates either a LimitLongOrder or a MarketLongOrder
+//CreateLongOrder creates either a LimitLongOrder or a MarketLongOrder
 //depending on the current Ask in relation to the previous three hour high
 func (d *Dragons) CreateLongOrders() {
-	//checking current market prices and then placing the correct type of Long
-	//depening on current price action
+	//below if/else if conditional checks current market prices and then places
+	//the correct type of Long Order depening on current price action above or
+	//below the previous three hour high
+
+	//checking if the current Ask is higher than the  previous three hour high
+	//and that no Market Order has already been placed. IE this means the price
+	//action is headed "up" and has already broken the three previous three hour
+	//high. To ride the trend "up" a Long Market Order is placed.
 	if d.Ask >= d.High && d.MarketOrderCreated == false {
 		fmt.Printf("Ask is higher than previous three hour high by %.5f:\n", d.AskDiff)
 
-		//place MarketLongOrder
+		//preparing the market long order
 		d.LongOrders.Orders = MarketLongOrder(d.Bid, d.Ask, d.Instrument, d.LongUnits)
-		d.LongOrders.OrderID = CreateClientOrdersAndGetOrderID(d.Instrument,
+
+		//creating the order and returning an oanda.OrderCreateTransaction
+		d.LongOrders.OrderCreateTransaction = CreateClientOrders(d.Instrument,
 			d.LongUnits, d.LongOrders.Orders)
+
+		//making field true to signify a only a long position is being taken IE
+		//no need to place a Short Order for the day because the trend is "up"
 		d.MarketOrderCreated = true
 
+		//checking if the current Ask is lower than the previous three hour high. IE
+		//the price action has not yet broken the previous three hour high so a Limit
+		// Long Order is placed in case the trend does go "up"
 	} else if d.Ask < d.High {
 		fmt.Printf("Ask is lower than previous three hour high by %.5f:\n", d.AskDiff)
 
-		//place LimitLongOrder
+		//setting the limit long order targetPrice one pip above the thre hour high
 		targetPrice := (d.High + .001) //FIXME need to work on order structure...
+
+		//preparing the Limit Long Order
 		d.LongOrders.Orders = LimitLongOrder(targetPrice, d.Instrument, d.LongUnits)
-		d.LongOrders.OrderID = CreateClientOrdersAndGetOrderID(d.Instrument,
+
+		//creating the Order and returning an oanda.OrderCreateTransaction
+		d.LongOrders.OrderCreateTransaction = CreateClientOrders(d.Instrument,
 			d.LongUnits, d.LongOrders.Orders)
-
-	} else {
-		fmt.Println("wtf ask...")
 	}
-
 }
 
-//HandleShortOrder creates either a LimitShortOrder or a MarketShortOrder
+//CreateShortOrder creates either a LimitShortOrder or a MarketShortOrder
 //depending on the current Bid in relation to the previous three hour low
 func (d *Dragons) CreateShortOrders() {
-	//checking current market prices and then placing the correct type of Short
-	//depening on current price action
+	//below if/else if conditional checks current market prices and then places
+	//the correct type of Short Order depening on current price action above or
+	//below the previous three hour low
+
+	//checking if the current Bid is lower than the  previous three hour low
+	//and that no Market Order has already been placed. IE this means the price
+	//action is headed "down" and has already broken the three previous three hour
+	//low. To ride the trend "down" a Short Market Order is placed.
 	if d.Bid <= d.Low && d.MarketOrderCreated == false {
 		fmt.Printf("Bid is lower than previous three hour low by %.5f:\n", d.BidDiff)
 
-		//place MarketShortOrder
+		//preparing the Market Short Order
 		d.ShortOrders.Orders = MarketShortOrder(d.Bid, d.Ask, d.Instrument, d.ShortUnits)
-		d.ShortOrders.OrderID = CreateClientOrdersAndGetOrderID(d.Instrument,
-			d.ShortUnits, d.ShortOrders.Orders)
+
+		//creating the Order and returning an oanda.OrderCreateTransaction
+		d.ShortOrders.Orders = CreateClientOrders(d.Instrument, d.ShortUnits,
+			d.ShortOrders.Orders)
+
+		//making field true to signify a only a short position is being taken IE
+		//no need to place a Long Order for the day because the trend is "down"
 		d.MarketOrderCreated = true
 
+		//checking if the current Bid is higher than the previous three hour low. IE
+		//the price action has not yet broken the previous three hour low so a Limit
+		//Short Order is placed in case the trend does go "down"
 	} else if d.Bid > d.Low {
 		fmt.Printf("Bid is higher than previous three hour low by %.5f:\n", d.BidDiff)
 
-		//place LimitShortOrder
+		//setting the limit short order targetPrice one pip below the three hour low
 		targetPrice := (d.Low - .001) //FIXME need to work on order structure
+
+		//preparing the Limig Short Order
 		d.ShortOrders.Orders = LimitShortOrder(targetPrice, d.Instrument, d.ShortUnits)
-		d.ShortOrders.OrderID = CreateClientOrdersAndGetOrderID(d.Instrument,
-			d.ShortUnits, d.ShortOrders.Orders)
 
-	} else {
-		fmt.Println("wtf bid")
+		//creating the Order and returning an oanda.OrderCreateTransaction
+		d.ShortOrders.OrderID = CreateClientOrders(d.Instrument, d.ShortUnits,
+			d.ShortOrders.Orders)
 	}
-
 }
+
+
 
 /*
 

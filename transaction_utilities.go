@@ -1,9 +1,9 @@
 package fxtechnical
 
 import (
-//"fmt"
-oanda "github.com/nepdave/oanda"
-//"log"
+	//"fmt"
+	oanda "github.com/nepdave/oanda"
+	//"log"
 )
 
 /*
@@ -30,13 +30,13 @@ type ClientTransaction struct {
 
 type OrdersTransaction struct {
 	Data    oanda.OrderCreateTransactionData //oanda package primitive
-	State   string                     //cancelled/closed/pending/open
+	State   string                           //cancelled/closed/pending/open
 	OrderID string
 }
 
 type TradeTransaction struct {
 	Data    oanda.OrderFillTransactionData //oanda package primitive
-	State   string                   //FIXME is this even a thing?
+	State   string                         //FIXME is this even a thing?
 	TradeID string
 }
 
