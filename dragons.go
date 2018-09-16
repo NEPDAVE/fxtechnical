@@ -99,6 +99,8 @@ func (d *Dragons) SetHighAndLow() {
 }
 
 //SetBidAsk sets the current Bid and Ask for the Dragons struct
+//FIXME it may be wise to use the highest ask and lowest bid for this because
+//those prices will have the highest liquidity... 
 func (d *Dragons) SetBidAsk() {
 	//getting the current highest bid and  lowest ask
 	pricesData := PricesData{}.Init(d.Instrument)
