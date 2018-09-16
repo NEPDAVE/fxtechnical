@@ -73,15 +73,9 @@ func (d Dragons) Init(instrument string, units string) {
 	d.CreateLongOrders()  //decides to create limit or market orders and returns an OrderCreateTransaction
 	d.CreateShortOrders() //decides to create limit or market orders and returns an OrderCreateTransaction
 
-	//d.HandleLongOrders(orderCreateTransaction) //uses the data in the
-	//OrderCreateTransaction to determine whether to monitor an order or a trade
-
-	//d.HandleShortOrders(orderCreateTransaction) //uses the data in the
-	//OrderCreateTransaction to determine whether to monitor an order or a trade
-
 	//FIXME need to add trailing stops to order preparations
   //FIXME need to work on order structure and making sure targetPrice/tp/sl
-	//data is optimal 
+	//data is optimal
 	//FIXME need to "handle" orderCreateTransactions vs orderFillTransactions to
 	//know whether to check on an order or a trade
 	//FIXME call function that tells if it's still an order or a trade...
@@ -198,6 +192,19 @@ func (d *Dragons) CreateShortOrders() {
 	}
 }
 
+//HandleLongOrders uses the data in the d.LongOrders.OrderCreateTransaction to
+//determine whether to monitor an order or a trade and to if neccesary cancel
+//an oppososite limit order
+func (d *Dragons) HandleLongOrders() {
+
+}
+
+//HandleShortOrders uses the data in the d.ShortOrders.OrderCreateTransaction to
+//determine whether to monitor an order or a trade and to if neccesary cancel
+//an oppososite limit order
+func (d *Dragons) HandleShortOrders() {
+
+}
 
 
 /*
