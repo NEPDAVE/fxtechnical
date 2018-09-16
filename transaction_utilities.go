@@ -45,7 +45,7 @@ func (t ClientTransaction) Init() {
 }
 
 func CreateOrdersTransaction() {
-	ordersTransaction := CreateClientOrders(instrument, units, orders)
+	//ordersTransaction := CreateClientOrders(instrument, units, orders)
 }
 
 //MonitorTransaction finds out whether a transaction is an order or trade

@@ -108,9 +108,14 @@ func GetOrderState(orderID string) string {
 	return state
 }
 
+type OrderState struct {
+	State   string
+	OrderID string
+}
+
 //ContinuousGetOrder uses an infinite for loop  to continually call
 //GetOrder and send an OrderState struct over the channel
-func ContinuousGetOrder(OrderID string, OrderStateChan chan string) {
+func ContinuousGetOrder(OrderID string, OrderStateChan chan OrderState) {
 	for {
 		orderState := OrderState{}
 		orderState.State = GetOrderState(OrderID)
@@ -141,7 +146,7 @@ func CreateClientOrders(instrument string, units string,
 	createOrdersByte, err := oanda.CreateOrder(ordersByte)
 
 	fmt.Println("STRING CREATE ORDERS BYTE:")
-	fmt.Println(string(createOrderByte))
+	fmt.Println(string(createOrdersByte))
 	fmt.Println("")
 
 	//checking CreateOrder error
@@ -153,7 +158,7 @@ func CreateClientOrders(instrument string, units string,
 	orderCreateTransaction := oanda.OrderCreateTransaction{}.
 		UnmarshalOrderCreateTransaction(createOrdersByte)
 
-	return orderCreateTransaction
+	return *orderCreateTransaction
 
 }
 

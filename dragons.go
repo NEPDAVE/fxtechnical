@@ -73,8 +73,11 @@ func (d Dragons) Init(instrument string, units string) {
 	d.CreateLongOrders()  //decides to create limit or market orders and returns an OrderCreateTransaction
 	d.CreateShortOrders() //decides to create limit or market orders and returns an OrderCreateTransaction
 
+	d.HandleLongOrders()
+	d.HandleShortOrders()
+
 	//FIXME need to add trailing stops to order preparations
-  //FIXME need to work on order structure and making sure targetPrice/tp/sl
+	//FIXME need to work on order structure and making sure targetPrice/tp/sl
 	//data is optimal
 	//FIXME need to "handle" orderCreateTransactions vs orderFillTransactions to
 	//know whether to check on an order or a trade
@@ -100,7 +103,7 @@ func (d *Dragons) SetHighAndLow() {
 
 //SetBidAsk sets the current Bid and Ask for the Dragons struct
 //FIXME it may be wise to use the highest ask and lowest bid for this because
-//those prices will have the highest liquidity... 
+//those prices will have the highest liquidity...
 func (d *Dragons) SetBidAsk() {
 	//getting the current highest bid and  lowest ask
 	pricesData := PricesData{}.Init(d.Instrument)
@@ -169,7 +172,7 @@ func (d *Dragons) CreateShortOrders() {
 		d.ShortOrders.Orders = MarketShortOrder(d.Bid, d.Ask, d.Instrument, d.ShortUnits)
 
 		//creating the Order and returning an oanda.OrderCreateTransaction
-		d.ShortOrders.Orders = CreateClientOrders(d.Instrument, d.ShortUnits,
+		d.ShortOrders.OrderCreateTransaction = CreateClientOrders(d.Instrument, d.ShortUnits,
 			d.ShortOrders.Orders)
 
 		//making field true to signify a only a short position is being taken IE
@@ -189,7 +192,7 @@ func (d *Dragons) CreateShortOrders() {
 		d.ShortOrders.Orders = LimitShortOrder(targetPrice, d.Instrument, d.ShortUnits)
 
 		//creating the Order and returning an oanda.OrderCreateTransaction
-		d.ShortOrders.OrderID = CreateClientOrders(d.Instrument, d.ShortUnits,
+		d.ShortOrders.OrderCreateTransaction = CreateClientOrders(d.Instrument, d.ShortUnits,
 			d.ShortOrders.Orders)
 	}
 }
@@ -198,6 +201,8 @@ func (d *Dragons) CreateShortOrders() {
 //determine whether to monitor an order or a trade and to if neccesary cancel
 //an oppososite limit order
 func (d *Dragons) HandleLongOrders() {
+	fmt.Println("Long OrderCreateTransaction:")
+	fmt.Println(d.LongOrders.OrderCreateTransaction)
 
 }
 
@@ -205,9 +210,10 @@ func (d *Dragons) HandleLongOrders() {
 //determine whether to monitor an order or a trade and to if neccesary cancel
 //an oppososite limit order
 func (d *Dragons) HandleShortOrders() {
+	fmt.Println("Short OrderCreateTransaction:")
+	fmt.Println(d.ShortOrders.OrderCreateTransaction)
 
 }
-
 
 /*
 
