@@ -57,7 +57,7 @@ type OrderData struct {
 	OrderID                string             //OrderID of current long order
 	TradeID                string             //FIXME TradeID of Order turned Trade?
 	Orders                 oanda.ClientOrders //Order SL/TP Limit/Market data
-	OrderCreateTransaction oanda.OrderCreateTransaction
+	OrderCreateTransaction *oanda.OrderCreateTransaction
 }
 
 //Init kicks off the algorithm to create orders, check orders/trades and cancel
@@ -203,6 +203,15 @@ func (d *Dragons) CreateShortOrders() {
 func (d *Dragons) HandleLongOrders() {
 	fmt.Println("Long OrderCreateTransaction:")
 	fmt.Println(d.LongOrders.OrderCreateTransaction)
+	d.LongOrders.OrderID = d.LongOrders.OrderCreateTransaction.
+		OrderCreateTransaction.ID
+	state := GetOrderState(d.LongOrders.OrderID)
+	fmt.Println(state)
+	fmt.Println("")
+	d.LongOrders.TradeID = d.LongOrders.OrderCreateTransaction.
+		OrderFillTransaction.TradeOpened.TradeID
+	fmt.Println("TradeID")
+	fmt.Println(d.LongOrders.TradeID)
 
 }
 
@@ -212,6 +221,16 @@ func (d *Dragons) HandleLongOrders() {
 func (d *Dragons) HandleShortOrders() {
 	fmt.Println("Short OrderCreateTransaction:")
 	fmt.Println(d.ShortOrders.OrderCreateTransaction)
+	d.ShortOrders.OrderID = d.ShortOrders.OrderCreateTransaction.
+		OrderCreateTransaction.ID
+	state := GetOrderState(d.ShortOrders.OrderID)
+	fmt.Println(state)
+	fmt.Println("")
+	d.ShortOrders.TradeID = d.ShortOrders.OrderCreateTransaction.
+		OrderFillTransaction.TradeOpened.TradeID
+	fmt.Println("TradeID")
+	fmt.Println(d.ShortOrders.TradeID)
+
 
 }
 

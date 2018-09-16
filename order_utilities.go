@@ -100,8 +100,8 @@ func GetOrderState(orderID string) string {
 		log.Println(err)
 	}
 
-	fmt.Println("string getOrderByte:")
-	fmt.Println(string(getOrderByte))
+	// fmt.Println("string getOrderByte:")
+	// fmt.Println(string(getOrderByte))
 
 	order := oanda.Order{}.UnmarshalOrder(getOrderByte)
 	state := order.OrderData.State
@@ -128,7 +128,7 @@ func ContinuousGetOrder(OrderID string, OrderStateChan chan OrderState) {
 //using the oanda package CreateOrder primitive function and returns an
 //OrderCreateTransaction
 func CreateClientOrders(instrument string, units string,
-	orders oanda.ClientOrders) oanda.OrderCreateTransaction {
+	orders oanda.ClientOrders) *oanda.OrderCreateTransaction {
 	//capturing panic raised by Unmarshaling returned createOrderByte
 	defer func() {
 		if err := recover(); err != nil {
@@ -158,7 +158,7 @@ func CreateClientOrders(instrument string, units string,
 	orderCreateTransaction := oanda.OrderCreateTransaction{}.
 		UnmarshalOrderCreateTransaction(createOrdersByte)
 
-	return *orderCreateTransaction
+	return orderCreateTransaction
 
 }
 
