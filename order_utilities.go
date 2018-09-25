@@ -21,6 +21,21 @@ OrderUtilities is a collection of methods for doing operations on orders
 ***************************
 */
 
+//OrderData holds the key information about the Order
+type OrderData struct {
+	Units                  string             //number of units to trade
+	OrderID                string             //OrderID of current long order
+	TradeID                string             //FIXME TradeID of Order turned Trade?
+	Orders                 oanda.ClientOrders //Order SL/TP Limit/Market data
+	OrdersByte             []byte             //the marshaled orders ready to be created
+	OrderCreateTransaction *oanda.OrderCreateTransaction
+}
+
+type OrderState struct {
+	State   string
+	OrderID string
+}
+
 //CancelOrder cancels an order and retursns a []byte slice to unmarshal
 func CancelOrder(OrderID string) []byte {
 	cancelOrderByte, err := oanda.CancelOrder(OrderID)
@@ -106,11 +121,6 @@ func GetOrderState(orderID string) string {
 	order := oanda.Order{}.UnmarshalOrder(getOrderByte)
 	state := order.OrderData.State
 	return state
-}
-
-type OrderState struct {
-	State   string
-	OrderID string
 }
 
 //ContinuousGetOrder uses an infinite for loop  to continually call

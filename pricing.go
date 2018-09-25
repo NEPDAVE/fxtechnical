@@ -151,6 +151,7 @@ func BidAsk(instrument string) (string, string) {
 	pricingByte, err := oanda.GetPricing(instrument)
 
 	if err != nil {
+		fmt.Println(err)
 		return "0", "0"
 	}
 

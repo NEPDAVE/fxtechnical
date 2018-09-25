@@ -14,48 +14,28 @@ Collection of functions to prepare Market and Limit orders for creation
 ***************************
 */
 
-//MarketLongOrder builds struct needed for marshaling data into a []byte
-//FIXME should not be setting SL/TP in this package
-func MarketLongOrder(bid float64, ask float64, instrument string,
-	units string) oanda.ClientOrders {
-	//tp/sl ratio is 3 to 1
-	stopLossPrice := fmt.Sprintf("%.5f", bid-(ask*.005))
-	stopLossOnFill := oanda.StopLossOnFill{TimeInForce: "GTC", Price: stopLossPrice}
+//MarketOrder builds struct needed for marshaling data into a []byte
+func MarketOrder(stopLossPrice string, takeProfitPrice string,
+	instrument string, units string) oanda.ClientOrders {
 
-	takeProfitPrice := fmt.Sprintf("%.5f", ask+(ask*.015))
-	takeProfitOnFill := oanda.TakeProfitOnFill{TimeInForce: "GTC", Price: takeProfitPrice}
-
-	orders := oanda.ClientOrders{
-		Orders: oanda.Orders{
-			StopLossOnFill:   stopLossOnFill,
-			TakeProfitOnFill: takeProfitOnFill,
-			TimeInForce:      "FOK",
-			Instrument:       instrument,
-			Type:             "MARKET",
-			PositionFill:     "DEFAULT"},
+	//stop loss data
+	stopLossOnFill := oanda.StopLossOnFill{
+		TimeInForce: "GTC", Price: stopLossPrice,
 	}
 
-	return orders
-}
+	//take profit data
+	takeProfitOnFill := oanda.TakeProfitOnFill{
+		TimeInForce: "GTC", Price: takeProfitPrice,
+	}
 
-//MarketShortOrder builds struct needed for marshaling data into a []byte
-//FIXME should not be setting SL/TP in this package
-//FIXME sell orders units need to be a string with a -(negative) sign in front
-func MarketShortOrder(bid float64, ask float64, instrument string,
-	units string) oanda.ClientOrders {
-	//tp/sl ratio is 3 to 1
-	stopLossPrice := fmt.Sprintf("%.5f", ask+(bid*.005))
-	stopLossOnFill := oanda.StopLossOnFill{TimeInForce: "GTC", Price: stopLossPrice}
-
-	takeProfitPrice := fmt.Sprintf("%.5f", bid-(ask*.015))
-	takeProfitOnFill := oanda.TakeProfitOnFill{TimeInForce: "GTC", Price: takeProfitPrice}
-
+	//order data
 	orders := oanda.ClientOrders{
 		Orders: oanda.Orders{
 			StopLossOnFill:   stopLossOnFill,
 			TakeProfitOnFill: takeProfitOnFill,
 			TimeInForce:      "FOK",
 			Instrument:       instrument,
+			Units:            units,
 			Type:             "MARKET",
 			PositionFill:     "DEFAULT"},
 	}
