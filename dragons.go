@@ -52,7 +52,7 @@ type Dragons struct {
 	ShortOrders        OrderData
 }
 
-//Init kicks off the goroutines to create orders and check orders
+//Init kicks off the methods to create orders and check orders
 func (d Dragons) Init(instrument string, units string) {
 	d.Instrument = instrument
 	d.LongUnits = units
