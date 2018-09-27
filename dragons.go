@@ -131,16 +131,16 @@ func (d *Dragons) PrepareShortOrders() {
 func (d *Dragons) MonitorPrices() {
 	//if a market order has not been created loop continues
 	for d.MarketOrderCreated == false {
-		d.SetBidAsk()
-		fmt.Println("#######################")
-		fmt.Println(time.Now())
-		fmt.Printf("Highest Bid: %f\n", d.Bid)
-		fmt.Printf("BidDiff ABV: %.5f\n", d.BidDiff)
-		fmt.Println("")
-		fmt.Printf("Lowest Ask: %f\n", d.Ask)
-		fmt.Printf("AskDiff ABV: %.5f\n", d.AskDiff)
-		fmt.Println("")
-		fmt.Printf("Spread: %.5f\n", (d.Ask - d.Bid))
+		// d.SetBidAsk()
+		// fmt.Println("#######################")
+		// fmt.Println(time.Now())
+		// fmt.Printf("Highest Bid: %f\n", d.Bid)
+		// fmt.Printf("BidDiff ABV: %.5f\n", d.BidDiff)
+		// fmt.Println("")
+		// fmt.Printf("Lowest Ask: %f\n", d.Ask)
+		// fmt.Printf("AskDiff ABV: %.5f\n", d.AskDiff)
+		// fmt.Println("")
+		// fmt.Printf("Spread: %.5f\n", (d.Ask - d.Bid))
 
 		if d.Ask > d.High {
 			fmt.Println("going long!")
@@ -152,6 +152,7 @@ func (d *Dragons) MonitorPrices() {
 
 			fmt.Println(string(createOrdersByte))
 			d.MarketOrderCreated = true
+			return
 
 		} else if d.Bid < d.Low {
 			fmt.Println("going short!")
@@ -163,6 +164,7 @@ func (d *Dragons) MonitorPrices() {
 
 			fmt.Println(string(createOrdersByte))
 			d.MarketOrderCreated = true
+			return
 
 		} else {
 			fmt.Println("no breakouts...")
