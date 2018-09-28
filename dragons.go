@@ -3,9 +3,13 @@ package fxtechnical
 import (
 	"fmt"
 	oanda "github.com/nepdave/oanda"
+	twilio "github.com/nepdave/twilio"
 	"log"
 	"math"
 	"time"
+	"sync"
+	"os"
+	//"io/ioutil"
 )
 
 /*
@@ -38,6 +42,7 @@ with a single market order instead of two limit orders
 
 //Dragons holds the trading alogorithm state and neccesary data
 type Dragons struct {
+	wg sync.WaitGroup
 	Instrument         string
 	LongUnits          string
 	ShortUnits         string
@@ -48,6 +53,7 @@ type Dragons struct {
 	BidDiff            float64 //abv difference between the Bid and the Low
 	AskDiff            float64 //abv difference between the Ask and the High
 	MarketOrderCreated bool
+	TimeOut            bool //program runs for four hours if no trade is placed
 	LongOrders         OrderData
 	ShortOrders        OrderData
 }
@@ -63,9 +69,49 @@ func (d Dragons) Init(instrument string, units string) {
 	d.AskDiff = math.Abs(d.Ask - d.High)
 	d.PrepareLongOrders()
 	d.PrepareShortOrders()
-	d.MonitorPrices()
 
-	fmt.Printf("%s dragons in the air\n", instrument)
+	d.wg.Add(1)
+	go d.TradeTimer()
+  d.MonitorPrices()
+	d.wg.Wait()
+  d.WriteToDoneFile()
+	//d.ReadFile()
+}
+
+// func (d *Dragons) ReadFile() {
+// 	exitingTime, err := ioutil.ReadFile("end.txt")
+//
+// 	if err != nil {
+// 		fmt.Println(err)
+// 	}
+// }
+
+func (d *Dragons) WriteToDoneFile() {
+	fmt.Println("Writing to done file...")
+
+	// use touch if log.txt does not exist, 0644 is standard permission
+	file, err := os.OpenFile("done.txt", os.O_WRONLY, 0644)
+	defer file.Close()
+
+	if err != nil {
+		panic(err)
+	}
+
+	t := time.Now()
+	fmt.Fprintf(file, "Dragons done: %s\n", t.String())
+	message := fmt.Sprintf("Dragons done: %s\n", t.String())
+	twilio.SendSms("15038411492", message)
+}
+
+//TradeTimer set a four hour limit on alogorithm run time. The timer will
+//cause the program to end if a placed trade does not.
+func (d *Dragons) TradeTimer() {
+	timer := time.NewTimer(45 * time.Second)
+
+	<-timer.C
+	fmt.Println("Timer 1 expired")
+	d.TimeOut = true
+	d.wg.Done()
 }
 
 //SetHighAndLow sets the previous three hour High and Low for the Dragons struct
@@ -129,18 +175,19 @@ func (d *Dragons) PrepareShortOrders() {
 }
 
 func (d *Dragons) MonitorPrices() {
-	//if a market order has not been created loop continues
-	for d.MarketOrderCreated == false {
+	//if a market order has not been created loop continues and the timer has
+	//not run out the loop continues
+	for d.MarketOrderCreated == false && d.TimeOut == false {
 		d.SetBidAsk()
-		fmt.Println("#######################")
-		fmt.Println(time.Now())
-		fmt.Printf("Highest Bid: %f\n", d.Bid)
-		fmt.Printf("BidDiff ABV: %.5f\n", d.BidDiff)
-		fmt.Println("")
-		fmt.Printf("Lowest Ask: %f\n", d.Ask)
-		fmt.Printf("AskDiff ABV: %.5f\n", d.AskDiff)
-		fmt.Println("")
-		fmt.Printf("Spread: %.5f\n", (d.Ask - d.Bid))
+		// fmt.Println("#######################")
+		// fmt.Println(time.Now())
+		// fmt.Printf("Highest Bid: %f\n", d.Bid)
+		// fmt.Printf("BidDiff ABV: %.5f\n", d.BidDiff)
+		// fmt.Println("")
+		// fmt.Printf("Lowest Ask: %f\n", d.Ask)
+		// fmt.Printf("AskDiff ABV: %.5f\n", d.AskDiff)
+		// fmt.Println("")
+		// fmt.Printf("Spread: %.5f\n", (d.Ask - d.Bid))
 
 		if d.Ask > d.High {
 			fmt.Println("going long!")
