@@ -151,7 +151,7 @@ func (d *Dragons) PrepareLongOrders() {
 	d.LongOrders.OrdersByte = oanda.ClientOrders{}.MarshalClientOrders(
 		d.LongOrders.Orders)
 
-	fmt.Println("long orders")
+	fmt.Println("Long Orders:")
 	fmt.Println(string(d.LongOrders.OrdersByte))
 }
 
@@ -170,17 +170,18 @@ func (d *Dragons) PrepareShortOrders() {
 	d.ShortOrders.OrdersByte = oanda.ClientOrders{}.MarshalClientOrders(
 		d.ShortOrders.Orders)
 
-	fmt.Println("short orders")
+	fmt.Println("Short Orders:")
 	fmt.Println(string(d.ShortOrders.OrdersByte))
 }
 
 func (d *Dragons) MonitorPrices() {
 	//if a market order has not been created loop continues and the timer has
 	//not run out the loop continues
+	fmt.Println("Entering MonitorPrices loop...")
 	for d.MarketOrderCreated == false && d.TimeOut == false {
 		d.SetBidAsk()
 		// fmt.Println("#######################")
-		// fmt.Println(time.Now())
+		//fmt.Println(time.Now())
 		// fmt.Printf("Highest Bid: %f\n", d.Bid)
 		// fmt.Printf("BidDiff ABV: %.5f\n", d.BidDiff)
 		// fmt.Println("")
@@ -190,7 +191,7 @@ func (d *Dragons) MonitorPrices() {
 		// fmt.Printf("Spread: %.5f\n", (d.Ask - d.Bid))
 
 		if d.Ask > d.High {
-			fmt.Println("going long!")
+			fmt.Println("Going long!")
 			createOrdersByte, err := oanda.CreateOrder(d.LongOrders.OrdersByte)
 
 			if err != nil {
@@ -202,7 +203,7 @@ func (d *Dragons) MonitorPrices() {
 			return
 
 		} else if d.Bid < d.Low {
-			fmt.Println("going short!")
+			fmt.Println("Going short!")
 			createOrdersByte, err := oanda.CreateOrder(d.ShortOrders.OrdersByte)
 
 			if err != nil {
@@ -212,9 +213,6 @@ func (d *Dragons) MonitorPrices() {
 			fmt.Println(string(createOrdersByte))
 			d.MarketOrderCreated = true
 			return
-
-		} else {
-			fmt.Println("no breakouts...")
-		}
+   }
 	}
 }
