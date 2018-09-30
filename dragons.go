@@ -6,10 +6,10 @@ import (
 	twilio "github.com/nepdave/twilio"
 	"log"
 	"math"
-	"time"
-	"sync"
 	"os"
-	//"io/ioutil"
+	"strconv"
+	"sync"
+	"time"
 )
 
 /*
@@ -36,13 +36,12 @@ And now you hold no position.
 /*
 ***************************
 Dragons is a trading algorithm that implements the London daybreak strategy
-with a single market order instead of two limit orders
+with a single market order
 ***************************
 */
 
 //Dragons holds the trading alogorithm state and neccesary data
 type Dragons struct {
-	wg sync.WaitGroup
 	Instrument         string
 	LongUnits          string
 	ShortUnits         string
@@ -64,54 +63,10 @@ func (d Dragons) Init(instrument string, units string) {
 	d.LongUnits = units
 	d.ShortUnits = "-" + units //adding -(negative sign) to denote short order
 	d.SetHighAndLow()
-	d.SetBidAsk()
 	d.BidDiff = math.Abs(d.Bid - d.Low)
 	d.AskDiff = math.Abs(d.Ask - d.High)
-	d.PrepareLongOrders()
-	d.PrepareShortOrders()
-
-	d.wg.Add(1)
-	go d.TradeTimer()
-  d.MonitorPrices()
-	d.wg.Wait()
-  d.WriteToDoneFile()
-	//d.ReadFile()
-}
-
-// func (d *Dragons) ReadFile() {
-// 	exitingTime, err := ioutil.ReadFile("end.txt")
-//
-// 	if err != nil {
-// 		fmt.Println(err)
-// 	}
-// }
-
-func (d *Dragons) WriteToDoneFile() {
-	fmt.Println("Writing to done file...")
-
-	// use touch if log.txt does not exist, 0644 is standard permission
-	file, err := os.OpenFile("done.txt", os.O_WRONLY, 0644)
-	defer file.Close()
-
-	if err != nil {
-		panic(err)
-	}
-
-	t := time.Now()
-	fmt.Fprintf(file, "Dragons done: %s\n", t.String())
-	message := fmt.Sprintf("Dragons done: %s\n", t.String())
-	twilio.SendSms("15038411492", message)
-}
-
-//TradeTimer set a four hour limit on alogorithm run time. The timer will
-//cause the program to end if a placed trade does not.
-func (d *Dragons) TradeTimer() {
-	timer := time.NewTimer(45 * time.Second)
-
-	<-timer.C
-	fmt.Println("Timer 1 expired")
-	d.TimeOut = true
-	d.wg.Done()
+	d.MonitorPrices()
+	d.WriteToDoneFile()
 }
 
 //SetHighAndLow sets the previous three hour High and Low for the Dragons struct
@@ -125,6 +80,10 @@ func (d *Dragons) SetHighAndLow() {
 
 	//getting the previous three hour high and low
 	d.High, d.Low = HighAndLow(candles)
+
+	fmt.Println("high and low:")
+	fmt.Println(d.High)
+	fmt.Println(d.Low)
 }
 
 //SetBidAsk sets the current Bid and Ask for the Dragons struct
@@ -140,8 +99,8 @@ func (d *Dragons) PrepareLongOrders() {
 	//setting stop loss 5 pips below the d.Low
 	stopLossPrice := fmt.Sprintf("%.5f", (d.Low - .0005))
 
-	//setting take profit 15 pips above the d.High
-	takeProfitPrice := fmt.Sprintf("%.5f", (d.High + .0015))
+	//setting take profit 15 pips above the current Ask
+	takeProfitPrice := fmt.Sprintf("%.5f", (d.Ask + .0015))
 
 	//building struct needed for marshaling data into a []byte
 	d.LongOrders.Orders = MarketOrder(stopLossPrice, takeProfitPrice,
@@ -153,14 +112,15 @@ func (d *Dragons) PrepareLongOrders() {
 
 	fmt.Println("Long Orders:")
 	fmt.Println(string(d.LongOrders.OrdersByte))
+	fmt.Println("")
 }
 
 func (d *Dragons) PrepareShortOrders() {
 	//setting stop loss 5 pips above the d.High
 	stopLossPrice := fmt.Sprintf("%.5f", (d.Low + .0005))
 
-	//setting take profit 15 pips below the d.Low
-	takeProfitPrice := fmt.Sprintf("%.5f", (d.High - .0015))
+	//setting take profit 15 pips below the current Bid
+	takeProfitPrice := fmt.Sprintf("%.5f", (d.Bid - .0015))
 
 	//building struct needed for marshaling data into a []byte
 	d.ShortOrders.Orders = MarketOrder(stopLossPrice, takeProfitPrice,
@@ -172,12 +132,28 @@ func (d *Dragons) PrepareShortOrders() {
 
 	fmt.Println("Short Orders:")
 	fmt.Println(string(d.ShortOrders.OrdersByte))
+	fmt.Println("")
 }
 
+//MonitorPrices checks that the timer has not run out and that an order has not
+//been created and continues to MonitorPrices for a breakout
 func (d *Dragons) MonitorPrices() {
+	var wg sync.WaitGroup
+	var timer = time.NewTimer(45 * time.Second)
+
+	wg.Add(1)
+	go func() {
+		//when the Timer expires, the current time will be sent on C indicating
+		//the Timer is done
+		<-timer.C
+		d.TimeOut = true
+		wg.Done()
+	}()
+
 	//if a market order has not been created loop continues and the timer has
 	//not run out the loop continues
 	fmt.Println("Entering MonitorPrices loop...")
+	fmt.Println("")
 	for d.MarketOrderCreated == false && d.TimeOut == false {
 		d.SetBidAsk()
 		// fmt.Println("#######################")
@@ -191,28 +167,63 @@ func (d *Dragons) MonitorPrices() {
 		// fmt.Printf("Spread: %.5f\n", (d.Ask - d.Bid))
 
 		if d.Ask > d.High {
-			fmt.Println("Going long!")
+			d.PrepareLongOrders()
 			createOrdersByte, err := oanda.CreateOrder(d.LongOrders.OrdersByte)
 
 			if err != nil {
 				log.Println(err)
 			}
 
+			fmt.Println("Long Order Create Transaction:")
 			fmt.Println(string(createOrdersByte))
+			fmt.Println("")
+
 			d.MarketOrderCreated = true
+
+			timer.Stop()
+			wg.Done()
 			return
 
 		} else if d.Bid < d.Low {
-			fmt.Println("Going short!")
+			d.PrepareShortOrders()
 			createOrdersByte, err := oanda.CreateOrder(d.ShortOrders.OrdersByte)
 
 			if err != nil {
 				log.Println(err)
 			}
 
+			fmt.Println("Short Order Create Transaction:")
 			fmt.Println(string(createOrdersByte))
+			fmt.Println("")
+
 			d.MarketOrderCreated = true
+
+			timer.Stop()
+			wg.Done()
 			return
-   }
+		}
 	}
+	wg.Wait()
+}
+
+func (d *Dragons) WriteToDoneFile() {
+	fmt.Println("Writing to done.txt...")
+
+	// use touch if log.txt does not exist, 0644 is standard permission
+	file, err := os.OpenFile("done.txt", os.O_WRONLY, 0644)
+	defer file.Close()
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Fprintf(file, "Dragons done: %s\n", time.Now().String())
+	done := fmt.Sprintf("Dragons done: %s\n", time.Now().String())
+
+	marketOrderCreated := fmt.Sprintf("Market Order Created: %s\n",
+		strconv.FormatBool(d.MarketOrderCreated))
+
+	message := done + marketOrderCreated
+
+	twilio.SendSms("15038411492", message)
 }
