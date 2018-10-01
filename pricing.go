@@ -44,8 +44,8 @@ func (p PricesData) Init(instrument string) PricesData {
 	pricing := oanda.Pricing{}.UnmarshalPricing(pricingByte)
 	p.Prices = &pricing.Prices[0]
 
-	//calling CalculateSpread also sets bid/ask fields in struct
-	p.CalculateSpread()
+	//calling CalculateWideSpread also sets bid/ask fields in struct
+	p.CalculateWideSpread()
 
 	return p
 }
@@ -94,9 +94,69 @@ func (p *PricesData) LowestAsk() float64 {
 	return p.Ask
 }
 
-//CalculateSpread calcuates the spread between the LowestAsk and HighestBid
-func (p *PricesData) CalculateSpread() {
+//LowestBid sets the value of Bid and BidLiquidity by finding the Lowest Bid
+func (p *PricesData) LowestBid() float64 {
+	//setting p.Bid to first value in slice to set a baseline
+	firstBid, err := strconv.ParseFloat(p.Prices.Bids[0].Price, 64)
+
+	if err != nil {
+		p.Error = err
+	}
+
+	//setting these to ensure p.LowAsk always contains a valid price
+	p.Bid = firstBid
+	p.BidLiquidity = p.Prices.Bids[0].Liquidity
+
+	for _, val := range p.Prices.Bids {
+		check, err := strconv.ParseFloat(val.Price, 64)
+
+		if err != nil {
+			p.Error = err
+		}
+
+		if check < p.Bid {
+			p.Bid = check
+			p.BidLiquidity = val.Liquidity
+		}
+	}
+	return p.Bid
+}
+
+//HighestAsk sets the value of Ask and AskLiquidity by finding the Highest Ask
+func (p *PricesData) HighestAsk() float64 {
+	firstAsk, err := strconv.ParseFloat(p.Prices.Asks[0].Price, 64)
+
+	if err != nil {
+		p.Error = err
+	}
+
+	//setting these to ensure p.LowAsk always contains a valid price
+	p.Ask = firstAsk
+	p.AskLiquidity = p.Prices.Asks[0].Liquidity
+
+	for _, val := range p.Prices.Asks {
+		check, err := strconv.ParseFloat(val.Price, 64)
+
+		if err != nil {
+			p.Error = err
+		}
+
+		if check > p.Ask {
+			p.Ask = check
+			p.AskLiquidity = val.Liquidity
+		}
+	}
+	return p.Ask
+}
+
+//CalculateTightSpread calcuates the spread between the LowestAsk and HighestBid
+func (p *PricesData) CalculateTightSpread() {
 	p.Spread = p.LowestAsk() - p.HighestBid()
+}
+
+//CalculateWideSpread calcuates the spread between the LowestAsk and HighestBid
+func (p *PricesData) CalculateWideSpread() {
+	p.Spread = p.HighestAsk() - p.LowestBid()
 }
 
 /*
@@ -129,7 +189,7 @@ func StreamBidAsk(instrument string, out chan PricesData) {
 			//most likely an actual price
 			prices := oanda.Prices{}.UnmarshalPrices(priceByte)
 			pricesData := PricesData{Prices: prices}
-			pricesData.CalculateSpread()
+			pricesData.CalculateTightSpread()
 			out <- pricesData
 		} else {
 			//most likely a heartbeat

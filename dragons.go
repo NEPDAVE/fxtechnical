@@ -177,7 +177,7 @@ func (d *Dragons) MonitorPrices() {
 			fmt.Println(d.OrderCreateTransaction)
 			fmt.Println("")
 
-      d.MarketOrderCreated = true
+			d.MarketOrderCreated = true
 
 			timer.Stop()
 			wg.Done()
