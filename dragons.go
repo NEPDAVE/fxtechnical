@@ -97,7 +97,6 @@ func (d *Dragons) PrepareLongOrders() {
 	//setting stop loss 5 pips below the d.Low
 	stopLossPrice := fmt.Sprintf("%.5f", (d.Low - .0005))
 
-	//setting take profit 3x the ((High - Low) + .0005 pips)
 	takeProfitPriceFloat := 3 * ((d.High - d.Low) + .0005)
 	takeProfitPrice := fmt.Sprintf("%.5f", (d.Ask + takeProfitPriceFloat))
 
@@ -118,7 +117,6 @@ func (d *Dragons) PrepareShortOrders() {
 	//setting stop loss 5 pips above the d.High
 	stopLossPrice := fmt.Sprintf("%.5f", (d.High + .0005))
 
-	//setting take profit 3x the ((High - Low) + .0005 pips)
 	takeProfitPriceFloat := 3 * ((d.High - d.Low) + .0005)
 	takeProfitPrice := fmt.Sprintf("%.5f", (d.Bid - takeProfitPriceFloat))
 
@@ -179,7 +177,7 @@ func (d *Dragons) MonitorPrices() {
 			fmt.Println(d.OrderCreateTransaction)
 			fmt.Println("")
 
-			d.MarketOrderCreated = true
+      d.MarketOrderCreated = true
 
 			timer.Stop()
 			wg.Done()
@@ -226,7 +224,7 @@ func (d *Dragons) WriteToDoneFile() {
 		strconv.FormatBool(d.MarketOrderCreated))
 
 	orderCreateTransaction := fmt.Sprintf("Order Create Transaction: %s\n",
-		d.orderCreateTransaction)
+		d.OrderCreateTransaction)
 
 	message := done + marketOrderCreated + orderCreateTransaction
 
