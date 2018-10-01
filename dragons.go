@@ -42,19 +42,20 @@ with a single market order
 
 //Dragons holds the trading alogorithm state and neccesary data
 type Dragons struct {
-	Instrument         string
-	LongUnits          string
-	ShortUnits         string
-	High               float64 //high from the last three hours
-	Low                float64 //low from the last three hours
-	Bid                float64 //current highest Bid
-	Ask                float64 //current lowest Ask
-	BidDiff            float64 //abv difference between the Bid and the Low
-	AskDiff            float64 //abv difference between the Ask and the High
-	MarketOrderCreated bool
-	TimeOut            bool //program runs for four hours if no trade is placed
-	LongOrders         OrderData
-	ShortOrders        OrderData
+	Instrument             string
+	LongUnits              string
+	ShortUnits             string
+	High                   float64 //high from the last three hours
+	Low                    float64 //low from the last three hours
+	Bid                    float64 //current highest Bid
+	Ask                    float64 //current lowest Ask
+	BidDiff                float64 //abv difference between the Bid and the Low
+	AskDiff                float64 //abv difference between the Ask and the High
+	MarketOrderCreated     bool
+	TimeOut                bool //program runs for four hours if no trade is placed
+	LongOrders             OrderData
+	ShortOrders            OrderData
+	OrderCreateTransaction string
 }
 
 //Init kicks off the methods to create orders and check orders
@@ -81,9 +82,6 @@ func (d *Dragons) SetHighAndLow() {
 	//getting the previous three hour high and low
 	d.High, d.Low = HighAndLow(candles)
 
-	fmt.Println("high and low:")
-	fmt.Println(d.High)
-	fmt.Println(d.Low)
 }
 
 //SetBidAsk sets the current Bid and Ask for the Dragons struct
@@ -99,8 +97,9 @@ func (d *Dragons) PrepareLongOrders() {
 	//setting stop loss 5 pips below the d.Low
 	stopLossPrice := fmt.Sprintf("%.5f", (d.Low - .0005))
 
-	//setting take profit 15 pips above the current Ask
-	takeProfitPrice := fmt.Sprintf("%.5f", (d.Ask + .0015))
+	//setting take profit 3x the ((High - Low) + .0005 pips)
+	takeProfitPriceFloat := 3 * ((d.High - d.Low) + .0005)
+	takeProfitPrice := fmt.Sprintf("%.5f", (d.Ask + takeProfitPriceFloat))
 
 	//building struct needed for marshaling data into a []byte
 	d.LongOrders.Orders = MarketOrder(stopLossPrice, takeProfitPrice,
@@ -117,10 +116,11 @@ func (d *Dragons) PrepareLongOrders() {
 
 func (d *Dragons) PrepareShortOrders() {
 	//setting stop loss 5 pips above the d.High
-	stopLossPrice := fmt.Sprintf("%.5f", (d.Low + .0005))
+	stopLossPrice := fmt.Sprintf("%.5f", (d.High + .0005))
 
-	//setting take profit 15 pips below the current Bid
-	takeProfitPrice := fmt.Sprintf("%.5f", (d.Bid - .0015))
+	//setting take profit 3x the ((High - Low) + .0005 pips)
+	takeProfitPriceFloat := 3 * ((d.High - d.Low) + .0005)
+	takeProfitPrice := fmt.Sprintf("%.5f", (d.Bid - takeProfitPriceFloat))
 
 	//building struct needed for marshaling data into a []byte
 	d.ShortOrders.Orders = MarketOrder(stopLossPrice, takeProfitPrice,
@@ -174,8 +174,9 @@ func (d *Dragons) MonitorPrices() {
 				log.Println(err)
 			}
 
+			d.OrderCreateTransaction = string(createOrdersByte)
 			fmt.Println("Long Order Create Transaction:")
-			fmt.Println(string(createOrdersByte))
+			fmt.Println(d.OrderCreateTransaction)
 			fmt.Println("")
 
 			d.MarketOrderCreated = true
@@ -192,8 +193,9 @@ func (d *Dragons) MonitorPrices() {
 				log.Println(err)
 			}
 
+			d.OrderCreateTransaction = string(createOrdersByte)
 			fmt.Println("Short Order Create Transaction:")
-			fmt.Println(string(createOrdersByte))
+			fmt.Println(d.OrderCreateTransaction)
 			fmt.Println("")
 
 			d.MarketOrderCreated = true
@@ -223,7 +225,10 @@ func (d *Dragons) WriteToDoneFile() {
 	marketOrderCreated := fmt.Sprintf("Market Order Created: %s\n",
 		strconv.FormatBool(d.MarketOrderCreated))
 
-	message := done + marketOrderCreated
+	orderCreateTransaction := fmt.Sprintf("Order Create Transaction: %s\n",
+		d.orderCreateTransaction)
+
+	message := done + marketOrderCreated + orderCreateTransaction
 
 	twilio.SendSms("15038411492", message)
 }
