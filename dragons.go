@@ -95,8 +95,8 @@ func (d *Dragons) SetBidAsk() {
 
 func (d *Dragons) PrepareLongOrders() {
 	//setting stop loss 5 pips below the d.Low
-	stopLossPrice := fmt.Sprintf("%.5f", (d.Low - .0005))
-	takeProfitPrice := fmt.Sprintf("%.5f", (d.Ask + .0025))
+	stopLossPrice := fmt.Sprintf("%.5f", (d.Ask - .002))
+	takeProfitPrice := fmt.Sprintf("%.5f", (d.Ask + .006))
 
 	//building struct needed for marshaling data into a []byte
 	d.LongOrders.Orders = MarketOrder(stopLossPrice, takeProfitPrice,
@@ -113,8 +113,8 @@ func (d *Dragons) PrepareLongOrders() {
 
 func (d *Dragons) PrepareShortOrders() {
 	//setting stop loss 5 pips above the d.High
-	stopLossPrice := fmt.Sprintf("%.5f", (d.High + .0005))
-	takeProfitPrice := fmt.Sprintf("%.5f", (d.Low - .0025))
+	stopLossPrice := fmt.Sprintf("%.5f", (d.Bid + .002))
+	takeProfitPrice := fmt.Sprintf("%.5f", (d.Bid - .006))
 
 	//building struct needed for marshaling data into a []byte
 	d.ShortOrders.Orders = MarketOrder(stopLossPrice, takeProfitPrice,
@@ -149,16 +149,18 @@ func (d *Dragons) MonitorPrices() {
 	fmt.Println("Entering MonitorPrices loop...")
 	fmt.Println("")
 	for d.MarketOrderCreated == false && d.TimeOut == false {
+		//putting at least .5 seconds between requests to prevent blocked requests
+		time.Sleep(500 * time.Millisecond)
 		d.SetBidAsk()
-		// fmt.Println("#######################")
-		//fmt.Println(time.Now())
-		// fmt.Printf("Highest Bid: %f\n", d.Bid)
-		// fmt.Printf("BidDiff ABV: %.5f\n", d.BidDiff)
-		// fmt.Println("")
-		// fmt.Printf("Lowest Ask: %f\n", d.Ask)
-		// fmt.Printf("AskDiff ABV: %.5f\n", d.AskDiff)
-		// fmt.Println("")
-		// fmt.Printf("Spread: %.5f\n", (d.Ask - d.Bid))
+		fmt.Println("#######################")
+		fmt.Println(time.Now())
+		fmt.Printf("Highest Bid: %f\n", d.Bid)
+		fmt.Printf("BidDiff ABV: %.5f\n", d.BidDiff)
+		fmt.Println("")
+		fmt.Printf("Lowest Ask: %f\n", d.Ask)
+		fmt.Printf("AskDiff ABV: %.5f\n", d.AskDiff)
+		fmt.Println("")
+		fmt.Printf("Spread: %.5f\n", (d.Ask - d.Bid))
 
 		if d.Ask > d.High {
 			d.PrepareLongOrders()
