@@ -137,7 +137,7 @@ func (d *Dragons) PrepareShortOrders() {
 //been created and continues to MonitorPrices for a breakout
 func (d *Dragons) MonitorPrices() {
 	var wg sync.WaitGroup
-	var timer = time.NewTimer(45 * time.Second)
+	var timer = time.NewTimer(4 * time.Hours)
 
 	wg.Add(1)
 	go func() {
