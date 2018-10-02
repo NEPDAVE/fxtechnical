@@ -26,7 +26,7 @@ type PricesData struct {
 }
 
 //Init populates PricesData with data and returns itself
-func (p PricesData) Init(instrument string) PricesData {
+func (p PricesData) Init(instrument string, spreadType string) PricesData {
 	//capturing panic raised by Unmarshaling
 	defer func() {
 		if err := recover(); err != nil {
@@ -44,8 +44,15 @@ func (p PricesData) Init(instrument string) PricesData {
 	pricing := oanda.Pricing{}.UnmarshalPricing(pricingByte)
 	p.Prices = &pricing.Prices[0]
 
-	//calling CalculateWideSpread also sets bid/ask fields in struct
-	p.CalculateWideSpread()
+	//control stucture to calculate the correct spread "size", IE are we looking
+	//for liquidity or price
+	if spreadType == "tightestSpread" {
+		//calling CalculateWideSpread also sets bid/ask fields in struct
+		p.CalculateTightestSpread()
+	} else if spreadType == "mostLiquidSpread" {
+		//calling CalculateWideSpread also sets bid/ask fields in struct
+		p.CalculateMostLiquidSpread()
+	}
 
 	return p
 }
@@ -94,69 +101,72 @@ func (p *PricesData) LowestAsk() float64 {
 	return p.Ask
 }
 
-//LowestBid sets the value of Bid and BidLiquidity by finding the Lowest Bid
-func (p *PricesData) LowestBid() float64 {
-	//setting p.Bid to first value in slice to set a baseline
-	firstBid, err := strconv.ParseFloat(p.Prices.Bids[0].Price, 64)
+//MostLiquidBid sets the value of Bid and BidLiquidity by finding the MostLiquidBid
+func (p *PricesData) MostLiquidBid() float64 {
+	//setting this to ensure p.BidLiquidity and p.Bid always contain a values
+	p.BidLiquidity = p.Prices.Bids[0].Liquidity
+	bid, err := strconv.ParseFloat(p.Prices.Bids[0].Price, 64)
 
 	if err != nil {
 		p.Error = err
 	}
 
-	//setting these to ensure p.LowAsk always contains a valid price
-	p.Bid = firstBid
-	p.BidLiquidity = p.Prices.Bids[0].Liquidity
+	p.Bid = bid
 
 	for _, val := range p.Prices.Bids {
-		check, err := strconv.ParseFloat(val.Price, 64)
+		check := val.Liquidity
 
-		if err != nil {
-			p.Error = err
-		}
+		if check > p.BidLiquidity {
+			p.BidLiquidity = check
+			bid, err := strconv.ParseFloat(val.Price, 64)
 
-		if check < p.Bid {
-			p.Bid = check
-			p.BidLiquidity = val.Liquidity
+			if err != nil {
+				p.Error = err
+			}
+
+			p.Bid = bid
 		}
 	}
 	return p.Bid
 }
 
-//HighestAsk sets the value of Ask and AskLiquidity by finding the Highest Ask
-func (p *PricesData) HighestAsk() float64 {
-	firstAsk, err := strconv.ParseFloat(p.Prices.Asks[0].Price, 64)
+//MostLiquidAsk sets the value of Ask and AskLiquidity by finding the MostLiquidAsk
+func (p *PricesData) MostLiquidAsk() float64 {
+	p.AskLiquidity = p.Prices.Asks[0].Liquidity
+
+	ask, err := strconv.ParseFloat(p.Prices.Asks[0].Price, 64)
 
 	if err != nil {
 		p.Error = err
 	}
 
-	//setting these to ensure p.LowAsk always contains a valid price
-	p.Ask = firstAsk
-	p.AskLiquidity = p.Prices.Asks[0].Liquidity
+	p.Ask = ask
 
 	for _, val := range p.Prices.Asks {
-		check, err := strconv.ParseFloat(val.Price, 64)
+		check := val.Liquidity
 
-		if err != nil {
-			p.Error = err
-		}
+		if check > p.AskLiquidity {
+			p.AskLiquidity = check
+			ask, err := strconv.ParseFloat(val.Price, 64)
 
-		if check > p.Ask {
-			p.Ask = check
-			p.AskLiquidity = val.Liquidity
+			if err != nil {
+				p.Error = err
+			}
+
+			p.Ask = ask
 		}
 	}
 	return p.Ask
 }
 
 //CalculateTightSpread calcuates the spread between the LowestAsk and HighestBid
-func (p *PricesData) CalculateTightSpread() {
+func (p *PricesData) CalculateTightestSpread() {
 	p.Spread = p.LowestAsk() - p.HighestBid()
 }
 
-//CalculateWideSpread calcuates the spread between the LowestAsk and HighestBid
-func (p *PricesData) CalculateWideSpread() {
-	p.Spread = p.HighestAsk() - p.LowestBid()
+//CalculateMostLiquidSpread calcuates the spread between the LowestAsk and HighestBid
+func (p *PricesData) CalculateMostLiquidSpread() {
+	p.Spread = p.MostLiquidAsk() - p.MostLiquidBid()
 }
 
 /*
@@ -189,7 +199,7 @@ func StreamBidAsk(instrument string, out chan PricesData) {
 			//most likely an actual price
 			prices := oanda.Prices{}.UnmarshalPrices(priceByte)
 			pricesData := PricesData{Prices: prices}
-			pricesData.CalculateTightSpread()
+			pricesData.CalculateTightestSpread()
 			out <- pricesData
 		} else {
 			//most likely a heartbeat
