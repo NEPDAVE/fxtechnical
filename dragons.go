@@ -96,9 +96,7 @@ func (d *Dragons) SetBidAsk() {
 func (d *Dragons) PrepareLongOrders() {
 	//setting stop loss 5 pips below the d.Low
 	stopLossPrice := fmt.Sprintf("%.5f", (d.Low - .0005))
-
-	takeProfitPriceFloat := 3 * ((d.High - d.Low) + .0005)
-	takeProfitPrice := fmt.Sprintf("%.5f", (d.Ask + takeProfitPriceFloat))
+	takeProfitPrice := fmt.Sprintf("%.5f", (d.Ask + .0025))
 
 	//building struct needed for marshaling data into a []byte
 	d.LongOrders.Orders = MarketOrder(stopLossPrice, takeProfitPrice,
@@ -116,9 +114,7 @@ func (d *Dragons) PrepareLongOrders() {
 func (d *Dragons) PrepareShortOrders() {
 	//setting stop loss 5 pips above the d.High
 	stopLossPrice := fmt.Sprintf("%.5f", (d.High + .0005))
-
-	takeProfitPriceFloat := 3 * ((d.High - d.Low) + .0005)
-	takeProfitPrice := fmt.Sprintf("%.5f", (d.Bid - takeProfitPriceFloat))
+	takeProfitPrice := fmt.Sprintf("%.5f", (d.Low - .0025))
 
 	//building struct needed for marshaling data into a []byte
 	d.ShortOrders.Orders = MarketOrder(stopLossPrice, takeProfitPrice,
