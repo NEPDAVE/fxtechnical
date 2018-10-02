@@ -88,7 +88,7 @@ func (d *Dragons) SetHighAndLow() {
 func (d *Dragons) SetBidAsk() {
 	//FIXME should this should be bid and ask with the most liquidity?
 	//currently using the highest bid and lowest ask...
-	pricesData := PricesData{}.Init(d.Instrument, "tight")
+	pricesData := PricesData{}.Init(d.Instrument, "mostLiquidSpread")
 	d.Bid = pricesData.Bid
 	d.Ask = pricesData.Ask
 }
