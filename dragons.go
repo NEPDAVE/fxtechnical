@@ -133,7 +133,7 @@ func (d *Dragons) PrepareShortOrders() {
 //been created and continues to MonitorPrices for a breakout
 func (d *Dragons) MonitorPrices() {
 	var wg sync.WaitGroup
-	var timer = time.NewTimer(4 * time.Hour)
+	var timer = time.NewTimer(14400 * time.Second) //4 hours
 
 	wg.Add(1)
 	go func() {
@@ -152,15 +152,15 @@ func (d *Dragons) MonitorPrices() {
 		//putting at least .5 seconds between requests to prevent blocked requests
 		time.Sleep(500 * time.Millisecond)
 		d.SetBidAsk()
-		fmt.Println("#######################")
-		fmt.Println(time.Now())
-		fmt.Printf("Highest Bid: %f\n", d.Bid)
-		fmt.Printf("BidDiff ABV: %.5f\n", d.BidDiff)
-		fmt.Println("")
-		fmt.Printf("Lowest Ask: %f\n", d.Ask)
-		fmt.Printf("AskDiff ABV: %.5f\n", d.AskDiff)
-		fmt.Println("")
-		fmt.Printf("Spread: %.5f\n", (d.Ask - d.Bid))
+		// fmt.Println("#######################")
+		// fmt.Println(time.Now())
+		// fmt.Printf("Highest Bid: %f\n", d.Bid)
+		// fmt.Printf("BidDiff ABV: %.5f\n", d.BidDiff)
+		// fmt.Println("")
+		// fmt.Printf("Lowest Ask: %f\n", d.Ask)
+		// fmt.Printf("AskDiff ABV: %.5f\n", d.AskDiff)
+		// fmt.Println("")
+		// fmt.Printf("Spread: %.5f\n", (d.Ask - d.Bid))
 
 		if d.Ask > d.High {
 			d.PrepareLongOrders()
