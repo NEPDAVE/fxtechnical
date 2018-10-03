@@ -51,6 +51,7 @@ type Dragons struct {
 	Ask                    float64 //current lowest Ask
 	BidDiff                float64 //abv difference between the Bid and the Low
 	AskDiff                float64 //abv difference between the Ask and the High
+	HighLowDifference      float64 //High - Low, provides volatility baseline
 	MarketOrderCreated     bool
 	TimeOut                bool //program runs for four hours if no trade is placed
 	LongOrders             OrderData
@@ -60,13 +61,16 @@ type Dragons struct {
 
 //Init kicks off the methods to create orders and check orders
 func (d Dragons) Init(instrument string, units string) {
+	d.SignalStart()
 	d.Instrument = instrument
 	d.LongUnits = units
 	d.ShortUnits = "-" + units //adding -(negative sign) to denote short order
 	d.SetHighAndLow()
+	d.SetHighLowDifference()
 	d.BidDiff = math.Abs(d.Bid - d.Low)
 	d.AskDiff = math.Abs(d.Ask - d.High)
-	d.SignalStart()
+	d.PrepareLongOrders()
+	d.PrepareShortOrders()
 	d.MonitorPrices()
 	d.SignalFinish()
 }
@@ -82,7 +86,10 @@ func (d *Dragons) SetHighAndLow() {
 
 	//getting the previous three hour high and low
 	d.High, d.Low = HighAndLow(candles)
+}
 
+func (d *Dragons) SetHighLowDifference() {
+	d.HighLowDifference = d.High - d.Low
 }
 
 //SetBidAsk sets the current Bid and Ask for the Dragons struct
@@ -95,9 +102,11 @@ func (d *Dragons) SetBidAsk() {
 }
 
 func (d *Dragons) PrepareLongOrders() {
-	//setting stop loss 5 pips below the d.Low
-	stopLossPrice := fmt.Sprintf("%.5f", (d.Ask - .001))
-	takeProfitPrice := fmt.Sprintf("%.5f", (d.Ask + .003))
+	//setting stop loss at 5 pips below the d.Low
+	stopLossPrice := fmt.Sprintf("%.5f", d.Low - .0005)
+	takeProfitSize := 3 * d.HighLowDifference
+	//setting the take profit at 3x the HighLowDifference + the high + 5 pips
+	takeProfitPrice := fmt.Sprintf("%.5f", (d.High + takeProfitSize + .0005))
 
 	//building struct needed for marshaling data into a []byte
 	d.LongOrders.Orders = MarketOrder(stopLossPrice, takeProfitPrice,
@@ -114,8 +123,10 @@ func (d *Dragons) PrepareLongOrders() {
 
 func (d *Dragons) PrepareShortOrders() {
 	//setting stop loss 5 pips above the d.High
-	stopLossPrice := fmt.Sprintf("%.5f", (d.Bid + .001))
-	takeProfitPrice := fmt.Sprintf("%.5f", (d.Bid - .003))
+	stopLossPrice := fmt.Sprintf("%.5f", (d.High + .0005))
+	takeProfitSize := 3 * d.HighLowDifference
+	//setting the take profit at 3x the HighLowDifference - the low - 5 pips
+	takeProfitPrice := fmt.Sprintf("%.5f", (d.Low - takeProfitSize - .0005))
 
 	//building struct needed for marshaling data into a []byte
 	d.ShortOrders.Orders = MarketOrder(stopLossPrice, takeProfitPrice,
@@ -164,7 +175,6 @@ func (d *Dragons) MonitorPrices() {
 		// fmt.Printf("Spread: %.5f\n", (d.Ask - d.Bid))
 
 		if d.Ask > d.High {
-			d.PrepareLongOrders()
 			createOrdersByte, err := oanda.CreateOrder(d.LongOrders.OrdersByte)
 
 			if err != nil {
@@ -183,7 +193,6 @@ func (d *Dragons) MonitorPrices() {
 			return
 
 		} else if d.Bid < d.Low {
-			d.PrepareShortOrders()
 			createOrdersByte, err := oanda.CreateOrder(d.ShortOrders.OrdersByte)
 
 			if err != nil {
