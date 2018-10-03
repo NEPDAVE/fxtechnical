@@ -66,8 +66,9 @@ func (d Dragons) Init(instrument string, units string) {
 	d.SetHighAndLow()
 	d.BidDiff = math.Abs(d.Bid - d.Low)
 	d.AskDiff = math.Abs(d.Ask - d.High)
+	d.SignalStart()
 	d.MonitorPrices()
-	d.WriteToDoneFile()
+	d.SignalFinish()
 }
 
 //SetHighAndLow sets the previous three hour High and Low for the Dragons struct
@@ -204,7 +205,13 @@ func (d *Dragons) MonitorPrices() {
 	wg.Wait()
 }
 
-func (d *Dragons) WriteToDoneFile() {
+func (d *Dragons) SignalStart() {
+	message := fmt.Sprintf("Dragons Start: %s\n", time.Now().String())
+	twilio.SendSms("15038411492", message)
+
+}
+
+func (d *Dragons) SignalFinish() {
 	fmt.Println("Writing to done.txt...")
 
 	// use touch if log.txt does not exist, 0644 is standard permission
@@ -215,8 +222,8 @@ func (d *Dragons) WriteToDoneFile() {
 		panic(err)
 	}
 
-	fmt.Fprintf(file, "Dragons done: %s\n", time.Now().String())
-	done := fmt.Sprintf("Dragons done: %s\n", time.Now().String())
+	fmt.Fprintf(file, "Dragons finish: %s\n", time.Now().String())
+	done := fmt.Sprintf("Dragons finish: %s\n", time.Now().String())
 
 	marketOrderCreated := fmt.Sprintf("Market Order Created: %s\n",
 		strconv.FormatBool(d.MarketOrderCreated))
