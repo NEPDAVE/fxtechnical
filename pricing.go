@@ -199,6 +199,7 @@ func StreamBidAsk(instrument string, out chan PricesData) {
 			//most likely an actual price
 			prices := oanda.Prices{}.UnmarshalPrices(priceByte)
 			pricesData := PricesData{Prices: prices}
+			//FIXME this should not happen here ...
 			pricesData.CalculateTightestSpread()
 			out <- pricesData
 		} else {
