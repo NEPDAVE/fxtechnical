@@ -1,5 +1,10 @@
 package fxtechnical
 
+import (
+	"fmt"
+	"strconv"
+)
+
 /*
 ***************************
 BollingerBand structs and methods
@@ -58,4 +63,35 @@ func (d DoubleBollingerBand) Init(instrument string, count string, granularity s
 	d.Granularity = granularity
 
 	return d
+}
+
+
+//AverageRange takes high - low for each candles adds them and divides by the
+//number of candles
+func AverageRange(instrument string, count string, granularity string) float64 {
+	candles, _ := Candles(instrument, count, granularity)
+	total := 0.0
+
+	countF, err := strconv.ParseFloat(count, 64)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	for _, candle := range candles.Candles {
+		high, err := strconv.ParseFloat(candle.Mid.High, 64)
+
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		low, err := strconv.ParseFloat(candle.Mid.Low, 64)
+
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		total = total + (high - low)
+	}
+	return total/countF
 }

@@ -52,6 +52,7 @@ type Dragons struct {
 	BidDiff                float64 //abv difference between the Bid and the Low
 	AskDiff                float64 //abv difference between the Ask and the High
 	HighLowDifference      float64 //High - Low, provides volatility baseline
+	AverageRange           float64
 	MarketOrderCreated     bool
 	TimeOut                bool //program runs for four hours if no trade is placed
 	LongOrders             OrderData
@@ -66,7 +67,12 @@ func (d Dragons) Init(instrument string, units string) {
 	d.LongUnits = units
 	d.ShortUnits = "-" + units //adding -(negative sign) to denote short order
 	d.SetHighAndLow()
+	fmt.Println("High")
+	fmt.Println(d.High)
+	fmt.Println("Low")
+	fmt.Println(d.Low)
 	d.SetHighLowDifference()
+	d.SetAverageRange()
 	d.BidDiff = math.Abs(d.Bid - d.Low)
 	d.AskDiff = math.Abs(d.Ask - d.High)
 	d.PrepareLongOrders()
@@ -92,6 +98,10 @@ func (d *Dragons) SetHighLowDifference() {
 	d.HighLowDifference = d.High - d.Low
 }
 
+func (d *Dragons) SetAverageRange() {
+	d.AverageRange = AverageRange(d.Instrument, "14", "H1")
+}
+
 //SetBidAsk sets the current Bid and Ask for the Dragons struct
 func (d *Dragons) SetBidAsk() {
 	//FIXME should this should be bid and ask with the most liquidity?
@@ -103,8 +113,8 @@ func (d *Dragons) SetBidAsk() {
 
 func (d *Dragons) PrepareLongOrders() {
 	//setting stop loss at 5 pips below the d.Low
-	stopLossPrice := fmt.Sprintf("%.5f", d.Low-.0005)
-	takeProfitSize := 3 * d.HighLowDifference
+	stopLossPrice := fmt.Sprintf("%.5f", d.Low - .0005)
+	takeProfitSize := 3 * d.AverageRange
 	//setting the take profit at 3x the HighLowDifference + the high + 5 pips
 	takeProfitPrice := fmt.Sprintf("%.5f", (d.High + takeProfitSize + .0005))
 
@@ -124,7 +134,7 @@ func (d *Dragons) PrepareLongOrders() {
 func (d *Dragons) PrepareShortOrders() {
 	//setting stop loss 5 pips above the d.High
 	stopLossPrice := fmt.Sprintf("%.5f", (d.High + .0005))
-	takeProfitSize := 3 * d.HighLowDifference
+	takeProfitSize := 3 * d.AverageRange
 	//setting the take profit at 3x the HighLowDifference - the low - 5 pips
 	takeProfitPrice := fmt.Sprintf("%.5f", (d.Low - takeProfitSize - .0005))
 
