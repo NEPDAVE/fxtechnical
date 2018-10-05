@@ -65,7 +65,6 @@ func (d DoubleBollingerBand) Init(instrument string, count string, granularity s
 	return d
 }
 
-
 //AverageRange takes high - low for each candles adds them and divides by the
 //number of candles
 func AverageRange(instrument string, count string, granularity string) float64 {
@@ -93,5 +92,5 @@ func AverageRange(instrument string, count string, granularity string) float64 {
 
 		total = total + (high - low)
 	}
-	return total/countF
+	return total / countF
 }

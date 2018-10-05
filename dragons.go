@@ -40,6 +40,8 @@ with a single market order
 ***************************
 */
 
+var wg sync.WaitGroup
+
 //Dragons holds the trading alogorithm state and neccesary data
 type Dragons struct {
 	Instrument             string
@@ -52,33 +54,42 @@ type Dragons struct {
 	BidDiff                float64 //abv difference between the Bid and the Low
 	AskDiff                float64 //abv difference between the Ask and the High
 	HighLowDifference      float64 //High - Low, provides volatility baseline
-	AverageRange           float64
+	AverageRange           float64 //average of (high - low)/number of candles
 	MarketOrderCreated     bool
-	TimeOut                bool //program runs for four hours if no trade is placed
+	TradeTimeOut           bool //program runs for four hours if no trade is placed
 	LongOrders             OrderData
 	ShortOrders            OrderData
 	OrderCreateTransaction string
 }
 
-//Init kicks off the methods to create orders and check orders
+//Init kicks off the methods to check prices and create orders
 func (d Dragons) Init(instrument string, units string) {
 	d.SignalStart()
 	d.Instrument = instrument
 	d.LongUnits = units
 	d.ShortUnits = "-" + units //adding -(negative sign) to denote short order
 	d.SetHighAndLow()
-	fmt.Println("High")
-	fmt.Println(d.High)
-	fmt.Println("Low")
-	fmt.Println(d.Low)
+	fmt.Printf("High: %.5f\n", d.High)
+	fmt.Printf("Low: %.5f\n", d.Low)
 	d.SetHighLowDifference()
 	d.SetAverageRange()
 	d.BidDiff = math.Abs(d.Bid - d.Low)
 	d.AskDiff = math.Abs(d.Ask - d.High)
 	d.PrepareLongOrders()
 	d.PrepareShortOrders()
+	wg.Add(2) //add before the go statement to prevent race conditions
+	go d.TradeTimeOutTimer()
+	go d.CloseOutPositionsTimer()
 	d.MonitorPrices()
 	d.SignalFinish()
+	wg.Wait()
+}
+
+//SignalStart sends an SMS indicating that the algorithm has kicked off
+func (d *Dragons) SignalStart() {
+	message := fmt.Sprintf("Dragons Start: %s\n", time.Now().String())
+	twilio.SendSms("15038411492", message)
+
 }
 
 //SetHighAndLow sets the previous three hour High and Low for the Dragons struct
@@ -113,7 +124,7 @@ func (d *Dragons) SetBidAsk() {
 
 func (d *Dragons) PrepareLongOrders() {
 	//setting stop loss at 5 pips below the d.Low
-	stopLossPrice := fmt.Sprintf("%.5f", d.Low - .0005)
+	stopLossPrice := fmt.Sprintf("%.5f", d.Low-.0005)
 	takeProfitSize := 3 * d.AverageRange
 	//setting the take profit at 3x the HighLowDifference + the high + 5 pips
 	takeProfitPrice := fmt.Sprintf("%.5f", (d.High + takeProfitSize + .0005))
@@ -151,26 +162,47 @@ func (d *Dragons) PrepareShortOrders() {
 	fmt.Println("")
 }
 
+//FIXME may want to think about a way to stop both of the timers if needed
+
+//TradeTimeOutTimer goes for 4 hours, if conditions to trade have not been met
+//the timer signals the algorithm to begin the finish sequence
+func (d *Dragons) TradeTimeOutTimer() {
+	timer := time.NewTimer(4 * time.Hour) //4 hours
+	//when the Timer expires, the current time will be sent on C indicating
+	//the Timer is done
+	<-timer.C
+	d.TradeTimeOut = true
+	wg.Done()
+}
+
+//CloseOutPositionsTimer goes for 8 hours and then closes out all Instrument
+//positions to prevent positions from being carried past the London session
+func (d *Dragons) CloseOutPositionsTimer() {
+	timer := time.NewTimer(8 * time.Hour) //8 hours
+	//when the Timer expires, the current time will be sent on C indicating
+	//the Timer is done
+	<-timer.C
+	//FIXME may want to monitor the d.MarketOrderCreated and stop the timer if
+	//no market order was created after the 4 hours timer alloted
+	closePositionsByte, err := oanda.ClosePositions(d.Instrument)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println("Close Positions Response:")
+	fmt.Println(string(closePositionsByte))
+	wg.Done()
+}
+
 //MonitorPrices checks that the timer has not run out and that an order has not
 //been created and continues to MonitorPrices for a breakout
 func (d *Dragons) MonitorPrices() {
-	var wg sync.WaitGroup
-	var timer = time.NewTimer(14400 * time.Second) //4 hours
-
-	wg.Add(1)
-	go func() {
-		//when the Timer expires, the current time will be sent on C indicating
-		//the Timer is done
-		<-timer.C
-		d.TimeOut = true
-		wg.Done()
-	}()
-
 	//if a market order has not been created loop continues and the timer has
 	//not run out the loop continues
 	fmt.Println("Entering MonitorPrices loop...")
 	fmt.Println("")
-	for d.MarketOrderCreated == false && d.TimeOut == false {
+	for d.MarketOrderCreated == false && d.TradeTimeOut == false {
 		//putting at least .5 seconds between requests to prevent blocked requests
 		time.Sleep(500 * time.Millisecond)
 		d.SetBidAsk()
@@ -197,9 +229,6 @@ func (d *Dragons) MonitorPrices() {
 			fmt.Println("")
 
 			d.MarketOrderCreated = true
-
-			timer.Stop()
-			wg.Done()
 			return
 
 		} else if d.Bid < d.Low {
@@ -216,18 +245,9 @@ func (d *Dragons) MonitorPrices() {
 
 			d.MarketOrderCreated = true
 
-			timer.Stop()
-			wg.Done()
 			return
 		}
 	}
-	wg.Wait()
-}
-
-func (d *Dragons) SignalStart() {
-	message := fmt.Sprintf("Dragons Start: %s\n", time.Now().String())
-	twilio.SendSms("15038411492", message)
-
 }
 
 func (d *Dragons) SignalFinish() {
