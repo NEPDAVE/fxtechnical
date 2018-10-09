@@ -115,8 +115,8 @@ func (d *Dragons) SetBidAsk() {
 
 //PrepareLongOrders builds a order data populated []byte for API submission
 func (d *Dragons) PrepareLongOrders() {
-	//setting stop loss at 5 pips below the d.Low
-	stopLossPrice := fmt.Sprintf("%.5f", d.Low-.0005)
+	//setting stop loss at 10 pips below the d.Low
+	stopLossPrice := fmt.Sprintf("%.5f", d.Low - .0010)
 	takeProfitSize := 3 * d.HighLowDifference
 	//setting the take profit at 3x the HighLowDifference + the high + 10 pips
 	takeProfitPrice := fmt.Sprintf("%.5f", (d.High + takeProfitSize + .0010))
@@ -136,8 +136,8 @@ func (d *Dragons) PrepareLongOrders() {
 
 //PrepareShortOrders builds a order data populated []byte for API submission
 func (d *Dragons) PrepareShortOrders() {
-	//setting stop loss 5 pips above the d.High
-	stopLossPrice := fmt.Sprintf("%.5f", (d.High + .0005))
+	//setting stop loss 10 pips above the d.High
+	stopLossPrice := fmt.Sprintf("%.5f", (d.High + .0010))
 	takeProfitSize := 3 * d.HighLowDifference
 
 	//setting the take profit at 3x the HighLowDifference - the low - 10 pips
