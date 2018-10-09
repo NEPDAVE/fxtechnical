@@ -1,9 +1,6 @@
 package fxtechnical
 
 import (
-	//"log"
-	//"strconv"
-	//"errors"
 	"fmt"
 	oanda "github.com/nepdave/oanda"
 )
@@ -22,6 +19,9 @@ func MarketOrder(stopLossPrice string, takeProfitPrice string,
 	stopLossOnFill := oanda.StopLossOnFill{
 		TimeInForce: "GTC", Price: stopLossPrice,
 	}
+
+	// //trailing stop loss data
+	// trailingStopLossOnFill := oanda.TrailingStopLossOnFill{}
 
 	//take profit data
 	takeProfitOnFill := oanda.TakeProfitOnFill{
@@ -92,6 +92,26 @@ func LimitShortOrder(targetPrice float64, instrument string,
 			Instrument:       instrument,
 			Type:             "LIMIT",
 			PositionFill:     "DEFAULT"},
+	}
+
+	return orders
+}
+
+/*
+***************************
+Trailing Stop Loss Order
+***************************
+*/
+
+//TrailingStopLossOrder builds struct needed for marshaling data into a []byte
+func TrailingStopLossOrder(tradeID string, distance string) oanda.ClientOrders {
+	orders := oanda.ClientOrders{
+		Orders: oanda.Orders{
+			Type:             "TRAILING_STOP_LOSS",
+			TradeID:          tradeID,
+			Distance:         distance,
+			TimeInForce:      "GTC",
+			TriggerCondition: "DEFAULT"},
 	}
 
 	return orders

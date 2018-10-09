@@ -5,33 +5,11 @@ import (
 	oanda "github.com/nepdave/oanda"
 	twilio "github.com/nepdave/twilio"
 	"log"
-	"math"
 	"os"
 	"strconv"
 	"sync"
 	"time"
 )
-
-/*
--An order is the instruction to buy or sell a currency at a specified rate. The order remains valid until executed or cancelled.
--
--A trade is the execution of the order.
--
--A position is the total of all trades for a specific market.
-
-new flow for alogorithm
-init will set all the needed variables
-
-In the first instance, an order is a request to make a trade to open a position.
-
-A trade is made when the order is matched to a counterparty, ie if you are a buyer, you've found a seller to sell to you, or vice versa.
-
-Once a trade is opened, you hold a position. A position is exposure to the market and will move the balance in your account up or down in line with market movements.
-
-Finally you place an order to close a position which will result in an trade opposite to the direction you initially took, eg if you initially bought, now you sell to close.
-
-And now you hold no position.
-*/
 
 /*
 ***************************
@@ -51,15 +29,15 @@ type Dragons struct {
 	Low                    float64 //low from the last three hours
 	Bid                    float64 //current highest Bid
 	Ask                    float64 //current lowest Ask
-	BidDiff                float64 //abv difference between the Bid and the Low
-	AskDiff                float64 //abv difference between the Ask and the High
 	HighLowDifference      float64 //High - Low, provides volatility baseline
 	AverageRange           float64 //average of (high - low)/number of candles
+	FiftyPeriodSMA         float64
 	MarketOrderCreated     bool
 	TradeTimeOut           bool //program runs for four hours if no trade is placed
 	LongOrders             OrderData
 	ShortOrders            OrderData
-	OrderCreateTransaction string
+	OrderCreateTransaction *oanda.OrderCreateTransaction
+	TradeID                string
 }
 
 //Init kicks off the methods to check prices and create orders
@@ -68,19 +46,22 @@ func (d Dragons) Init(instrument string, units string) {
 	d.Instrument = instrument
 	d.LongUnits = units
 	d.ShortUnits = "-" + units //adding -(negative sign) to denote short order
+	fmt.Printf("Long Units: %s\n", d.LongUnits)
+	fmt.Printf("Short Units: %s\n", d.ShortUnits)
 	d.SetHighAndLow()
 	fmt.Printf("High: %.5f\n", d.High)
 	fmt.Printf("Low: %.5f\n", d.Low)
 	d.SetHighLowDifference()
 	d.SetAverageRange()
-	d.BidDiff = math.Abs(d.Bid - d.Low)
-	d.AskDiff = math.Abs(d.Ask - d.High)
+	d.SetFiftyPeriodSMA()
 	d.PrepareLongOrders()
 	d.PrepareShortOrders()
 	wg.Add(2) //add before the go statement to prevent race conditions
 	go d.TradeTimeOutTimer()
 	go d.CloseOutPositionsTimer()
 	d.MonitorPrices()
+	//FIXME need to figure out how to properly set trailingStopLossOrder
+	//d.SetTrailingStopLoss()
 	d.SignalFinish()
 	wg.Wait()
 }
@@ -105,12 +86,21 @@ func (d *Dragons) SetHighAndLow() {
 	d.High, d.Low = HighAndLow(candles)
 }
 
+//SetHighLowDifference is the total of the high - low
 func (d *Dragons) SetHighLowDifference() {
 	d.HighLowDifference = d.High - d.Low
 }
 
+//SetAverageRange is the (high - low)/number of candels
 func (d *Dragons) SetAverageRange() {
 	d.AverageRange = AverageRange(d.Instrument, "14", "H1")
+}
+
+func (d *Dragons) SetFiftyPeriodSMA() {
+	count := "50"
+	candles, _ := Candles(d.Instrument, count, "H1")
+	average, _ := CloseAverage(candles, count)
+	d.FiftyPeriodSMA = average
 }
 
 //SetBidAsk sets the current Bid and Ask for the Dragons struct
@@ -122,12 +112,13 @@ func (d *Dragons) SetBidAsk() {
 	d.Ask = pricesData.Ask
 }
 
+//PrepareLongOrders builds a order data populated []byte for API submission
 func (d *Dragons) PrepareLongOrders() {
 	//setting stop loss at 5 pips below the d.Low
 	stopLossPrice := fmt.Sprintf("%.5f", d.Low-.0005)
-	takeProfitSize := 3 * d.AverageRange
-	//setting the take profit at 3x the HighLowDifference + the high + 5 pips
-	takeProfitPrice := fmt.Sprintf("%.5f", (d.High + takeProfitSize + .0005))
+	takeProfitSize := 3 * d.HighLowDifference
+	//setting the take profit at 3x the HighLowDifference + the high + 10 pips
+	takeProfitPrice := fmt.Sprintf("%.5f", (d.High + takeProfitSize + .0010))
 
 	//building struct needed for marshaling data into a []byte
 	d.LongOrders.Orders = MarketOrder(stopLossPrice, takeProfitPrice,
@@ -142,12 +133,13 @@ func (d *Dragons) PrepareLongOrders() {
 	fmt.Println("")
 }
 
+//PrepareShortOrders builds a order data populated []byte for API submission
 func (d *Dragons) PrepareShortOrders() {
 	//setting stop loss 5 pips above the d.High
 	stopLossPrice := fmt.Sprintf("%.5f", (d.High + .0005))
-	takeProfitSize := 3 * d.AverageRange
-	//setting the take profit at 3x the HighLowDifference - the low - 5 pips
-	takeProfitPrice := fmt.Sprintf("%.5f", (d.Low - takeProfitSize - .0005))
+	takeProfitSize := 3 * d.HighLowDifference
+	//setting the take profit at 3x the HighLowDifference - the low - 10 pips
+	takeProfitPrice := fmt.Sprintf("%.5f", (d.Low - takeProfitSize - .0010))
 
 	//building struct needed for marshaling data into a []byte
 	d.ShortOrders.Orders = MarketOrder(stopLossPrice, takeProfitPrice,
@@ -168,6 +160,7 @@ func (d *Dragons) PrepareShortOrders() {
 //the timer signals the algorithm to begin the finish sequence
 func (d *Dragons) TradeTimeOutTimer() {
 	timer := time.NewTimer(4 * time.Hour) //4 hours
+
 	//when the Timer expires, the current time will be sent on C indicating
 	//the Timer is done
 	<-timer.C
@@ -179,6 +172,7 @@ func (d *Dragons) TradeTimeOutTimer() {
 //positions to prevent positions from being carried past the London session
 func (d *Dragons) CloseOutPositionsTimer() {
 	timer := time.NewTimer(8 * time.Hour) //8 hours
+
 	//when the Timer expires, the current time will be sent on C indicating
 	//the Timer is done
 	<-timer.C
@@ -216,31 +210,37 @@ func (d *Dragons) MonitorPrices() {
 		// fmt.Println("")
 		// fmt.Printf("Spread: %.5f\n", (d.Ask - d.Bid))
 
-		if d.Ask > d.High {
+		if d.Ask > d.High && d.Ask > d.FiftyPeriodSMA {
 			createOrdersByte, err := oanda.CreateOrder(d.LongOrders.OrdersByte)
 
 			if err != nil {
 				log.Println(err)
 			}
 
-			d.OrderCreateTransaction = string(createOrdersByte)
+			//unmarshaling the returned createOrdersByte into a native struct
+			d.OrderCreateTransaction = oanda.OrderCreateTransaction{}.
+				UnmarshalOrderCreateTransaction(createOrdersByte)
+
 			fmt.Println("Long Order Create Transaction:")
-			fmt.Println(d.OrderCreateTransaction)
+			fmt.Println(string(createOrdersByte))
 			fmt.Println("")
 
 			d.MarketOrderCreated = true
 			return
 
-		} else if d.Bid < d.Low {
+		} else if d.Bid < d.Low && d.Bid < d.FiftyPeriodSMA {
 			createOrdersByte, err := oanda.CreateOrder(d.ShortOrders.OrdersByte)
 
 			if err != nil {
 				log.Println(err)
 			}
 
-			d.OrderCreateTransaction = string(createOrdersByte)
+			//unmarshaling the returned createOrdersByte into a native struct
+			d.OrderCreateTransaction = oanda.OrderCreateTransaction{}.
+				UnmarshalOrderCreateTransaction(createOrdersByte)
+
 			fmt.Println("Short Order Create Transaction:")
-			fmt.Println(d.OrderCreateTransaction)
+			fmt.Println(string(createOrdersByte))
 			fmt.Println("")
 
 			d.MarketOrderCreated = true
@@ -250,6 +250,38 @@ func (d *Dragons) MonitorPrices() {
 	}
 }
 
+//SetTrailingStopLoss adds a trailingStopLossOrder to and existing trade
+func (d *Dragons) SetTrailingStopLoss() {
+	d.TradeID = d.OrderCreateTransaction.
+		OrderFillTransaction.TradeOpened.TradeID
+
+	if d.MarketOrderCreated == true && d.TradeID != "" {
+
+		//FIXME this should not be hard coded. it should dynamically changed
+		distance := "1"
+
+		//building struct needed for marshaling data into a []byte
+		trailingStopLossOrder := TrailingStopLossOrder(d.TradeID, distance)
+
+		//marshaling the struct into a byte slice for order creation
+		trailingStopLossOrderByte := oanda.ClientOrders{}.MarshalClientOrders(
+			trailingStopLossOrder)
+
+		createOrdersByte, err := oanda.CreateOrder(trailingStopLossOrderByte)
+
+		if err != nil {
+			log.Println(err)
+		}
+
+		fmt.Println("STOP LOSS ORDER RESPONSE:")
+		fmt.Println(string(createOrdersByte))
+
+	} else {
+		fmt.Println("TradeID was empty string...")
+	}
+}
+
+//SignalFinish sends an SMS to signal that the algo has finished
 func (d *Dragons) SignalFinish() {
 	fmt.Println("Writing to done.txt...")
 
@@ -267,10 +299,13 @@ func (d *Dragons) SignalFinish() {
 	marketOrderCreated := fmt.Sprintf("Market Order Created: %s\n",
 		strconv.FormatBool(d.MarketOrderCreated))
 
-	orderCreateTransaction := fmt.Sprintf("Order Create Transaction: %s\n",
+	orderCreateTransaction := fmt.Sprintf("Order Create Transaction: %v\n",
 		d.OrderCreateTransaction)
 
 	message := done + marketOrderCreated + orderCreateTransaction
 
 	twilio.SendSms("15038411492", message)
+	fmt.Println("sent done sms")
+
+	return
 }
