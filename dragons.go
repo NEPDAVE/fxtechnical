@@ -54,6 +54,7 @@ func (d Dragons) Init(instrument string, units string) {
 	d.SetHighLowDifference()
 	d.SetAverageRange()
 	d.SetFiftyPeriodSMA()
+	fmt.Printf("50 SMA: %.5f\n", d.FiftyPeriodSMA)
 	d.PrepareLongOrders()
 	d.PrepareShortOrders()
 	wg.Add(2) //add before the go statement to prevent race conditions
