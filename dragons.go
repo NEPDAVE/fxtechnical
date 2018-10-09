@@ -138,6 +138,7 @@ func (d *Dragons) PrepareShortOrders() {
 	//setting stop loss 5 pips above the d.High
 	stopLossPrice := fmt.Sprintf("%.5f", (d.High + .0005))
 	takeProfitSize := 3 * d.HighLowDifference
+
 	//setting the take profit at 3x the HighLowDifference - the low - 10 pips
 	takeProfitPrice := fmt.Sprintf("%.5f", (d.Low - takeProfitSize - .0010))
 
