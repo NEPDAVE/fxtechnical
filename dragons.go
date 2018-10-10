@@ -115,12 +115,12 @@ func (d *Dragons) SetBidAsk() {
 
 //PrepareLongOrders builds a order data populated []byte for API submission
 func (d *Dragons) PrepareLongOrders() {
-	//setting stop loss at 10 pips below the d.Low
-	stopLossPrice := fmt.Sprintf("%.5f", d.Low)
+	//setting stop loss at 5 pips below the d.Low
+	stopLossPrice := fmt.Sprintf("%.5f", d.Low - .0005)
 	takeProfitSize := 3 * d.HighLowDifference
 
-	//setting the take profit at 3x the HighLowDifference + the high + 10 pips
-	takeProfitPrice := fmt.Sprintf("%.5f", (d.High + takeProfitSize))
+	//setting the take profit at 3x the HighLowDifference + the high + 5 pips
+	takeProfitPrice := fmt.Sprintf("%.5f", (d.High + takeProfitSize + .0005))
 
 	//building struct needed for marshaling data into a []byte
 	d.LongOrders.Orders = MarketOrder(stopLossPrice, takeProfitPrice,
@@ -137,12 +137,12 @@ func (d *Dragons) PrepareLongOrders() {
 
 //PrepareShortOrders builds a order data populated []byte for API submission
 func (d *Dragons) PrepareShortOrders() {
-	//setting stop loss 10 pips above the d.High
-	stopLossPrice := fmt.Sprintf("%.5f", (d.High))
+	//setting stop loss 5 pips above the d.High
+	stopLossPrice := fmt.Sprintf("%.5f", (d.High + .0005))
 	takeProfitSize := 3 * d.HighLowDifference
 
-	//setting the take profit at 3x the HighLowDifference - the low - 10 pips
-	takeProfitPrice := fmt.Sprintf("%.5f", (d.Low - takeProfitSize))
+	//setting the take profit at 3x the HighLowDifference - the low - 5 pips
+	takeProfitPrice := fmt.Sprintf("%.5f", (d.Low - takeProfitSize - .0005))
 
 	//building struct needed for marshaling data into a []byte
 	d.ShortOrders.Orders = MarketOrder(stopLossPrice, takeProfitPrice,
@@ -162,7 +162,7 @@ func (d *Dragons) PrepareShortOrders() {
 //TradeTimeOutTimer goes for 4 hours, if conditions to trade have not been met
 //the timer signals the algorithm to begin the finish sequence
 func (d *Dragons) TradeTimeOutTimer() {
-	timer := time.NewTimer(4 * time.Hour) //4 hours
+	timer := time.NewTimer(9 * time.Hour) //4 hours
 
 	//when the Timer expires, the current time will be sent on C indicating
 	//the Timer is done
@@ -174,7 +174,7 @@ func (d *Dragons) TradeTimeOutTimer() {
 //CloseOutPositionsTimer goes for 8 hours and then closes out all Instrument
 //positions to prevent positions from being carried past the London session
 func (d *Dragons) CloseOutPositionsTimer() {
-	timer := time.NewTimer(8 * time.Hour) //8 hours
+	timer := time.NewTimer(9 * time.Hour) //8 hours
 
 	//when the Timer expires, the current time will be sent on C indicating
 	//the Timer is done
