@@ -77,7 +77,7 @@ func (d *Dragons) SignalStart() {
 //SetHighAndLow sets the previous three hour High and Low for the Dragons struct
 func (d *Dragons) SetHighAndLow() {
 	//getting and unmarshaling last three hourly candle data
-	candles, err := Candles(d.Instrument, "3", "H1")
+	candles, err := Candles(d.Instrument, "4", "H1")
 
 	if err != nil {
 		log.Println(err)
@@ -116,10 +116,11 @@ func (d *Dragons) SetBidAsk() {
 //PrepareLongOrders builds a order data populated []byte for API submission
 func (d *Dragons) PrepareLongOrders() {
 	//setting stop loss at 10 pips below the d.Low
-	stopLossPrice := fmt.Sprintf("%.5f", d.Low - .0010)
+	stopLossPrice := fmt.Sprintf("%.5f", d.Low)
 	takeProfitSize := 3 * d.HighLowDifference
+
 	//setting the take profit at 3x the HighLowDifference + the high + 10 pips
-	takeProfitPrice := fmt.Sprintf("%.5f", (d.High + takeProfitSize + .0010))
+	takeProfitPrice := fmt.Sprintf("%.5f", (d.High + takeProfitSize))
 
 	//building struct needed for marshaling data into a []byte
 	d.LongOrders.Orders = MarketOrder(stopLossPrice, takeProfitPrice,
@@ -137,11 +138,11 @@ func (d *Dragons) PrepareLongOrders() {
 //PrepareShortOrders builds a order data populated []byte for API submission
 func (d *Dragons) PrepareShortOrders() {
 	//setting stop loss 10 pips above the d.High
-	stopLossPrice := fmt.Sprintf("%.5f", (d.High + .0010))
+	stopLossPrice := fmt.Sprintf("%.5f", (d.High))
 	takeProfitSize := 3 * d.HighLowDifference
 
 	//setting the take profit at 3x the HighLowDifference - the low - 10 pips
-	takeProfitPrice := fmt.Sprintf("%.5f", (d.Low - takeProfitSize - .0010))
+	takeProfitPrice := fmt.Sprintf("%.5f", (d.Low - takeProfitSize))
 
 	//building struct needed for marshaling data into a []byte
 	d.ShortOrders.Orders = MarketOrder(stopLossPrice, takeProfitPrice,
