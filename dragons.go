@@ -116,7 +116,7 @@ func (d *Dragons) SetBidAsk() {
 //PrepareLongOrders builds a order data populated []byte for API submission
 func (d *Dragons) PrepareLongOrders() {
 	//setting stop loss at 5 pips below the d.Low
-	stopLossPrice := fmt.Sprintf("%.5f", d.Low - .0005)
+	stopLossPrice := fmt.Sprintf("%.5f", d.Low-.0005)
 	takeProfitSize := 3 * d.HighLowDifference
 
 	//setting the take profit at 3x the HighLowDifference + the high + 5 pips
@@ -192,7 +192,7 @@ func (d *Dragons) CloseOutPositionsTimer() {
 	fmt.Println("Close Long Positions Response:")
 	fmt.Println(string(closeLongPositionsByte))
 
-  //closing out short positions
+	//closing out short positions
 	closeShortPositionsByte, err := oanda.CloseShortPositions(d.Instrument)
 
 	if err != nil {
