@@ -181,14 +181,27 @@ func (d *Dragons) CloseOutPositionsTimer() {
 	<-timer.C
 	//FIXME may want to monitor the d.MarketOrderCreated and stop the timer if
 	//no market order was created after the 4 hours timer alloted
-	closePositionsByte, err := oanda.ClosePositions(d.Instrument)
+
+	//closing out long positions
+	closeLongPositionsByte, err := oanda.CloseLongPositions(d.Instrument)
 
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	fmt.Println("Close Positions Response:")
-	fmt.Println(string(closePositionsByte))
+	fmt.Println("Close Long Positions Response:")
+	fmt.Println(string(closeLongPositionsByte))
+
+  //closing out short positions
+	closeShortPositionsByte, err := oanda.CloseShortPositions(d.Instrument)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println("Close Short Positions Response:")
+	fmt.Println(string(closeShortPositionsByte))
+
 	wg.Done()
 }
 
