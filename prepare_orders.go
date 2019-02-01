@@ -7,7 +7,18 @@ import (
 
 /*
 ***************************
-Collection of functions to prepare Market and Limit orders for creation
+Collection of functions to create/submit Market and Limit orders to oanda
+***************************
+*/
+
+func CreateOrder(units, instrument, stoploss, takeProfit)
+	oanda.OrderCreateTransAction {
+	fmt.Println("creating a mofo order - log this shit for the ledger")
+}
+
+/*
+***************************
+Collection of functions to prepare Market and Limit orders
 ***************************
 */
 
@@ -26,6 +37,25 @@ func MarketOrder(stopLossPrice string, takeProfitPrice string,
 	//take profit data
 	takeProfitOnFill := oanda.TakeProfitOnFill{
 		TimeInForce: "GTC", Price: takeProfitPrice,
+	}
+
+  //submiting order with no takeProfit or stoploss
+  if stopLossPrice == "" && takeProfitPrice == "" {
+		//order data
+		orders := oanda.ClientOrders{
+			Orders: oanda.Orders{
+				TimeInForce:      "FOK",
+				Instrument:       instrument,
+				Units:            units,
+				Type:             "MARKET",
+				PositionFill:     "DEFAULT"},
+		}
+
+		fmt.Println("test me - line 45, prepare_orders.go")
+
+		return orders
+
+
 	}
 
 	//order data
