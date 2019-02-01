@@ -11,8 +11,8 @@ Collection of functions to create/submit Market and Limit orders to oanda
 ***************************
 */
 
-func CreateOrder(units, instrument, stoploss, takeProfit)
-	oanda.OrderCreateTransAction {
+//this shit need to return an oanda.OrderCreateTransaction
+func CreateOrder(units string,instrument string,stoploss string, takeProfit string) {
 	fmt.Println("creating a mofo order - log this shit for the ledger")
 }
 
