@@ -12,7 +12,7 @@ Collection of functions to create/submit Market and Limit orders to oanda
 */
 
 //this shit need to return an oanda.OrderCreateTransaction
-func CreateOrder(units string,instrument string,stoploss string, takeProfit string) {
+func CreateOrder(units string, instrument string, stoploss string, takeProfit string) {
 	fmt.Println("creating a mofo order - log this shit for the ledger")
 }
 
@@ -39,22 +39,21 @@ func MarketOrder(stopLossPrice string, takeProfitPrice string,
 		TimeInForce: "GTC", Price: takeProfitPrice,
 	}
 
-  //submiting order with no takeProfit or stoploss
-  if stopLossPrice == "" && takeProfitPrice == "" {
+	//submiting order with no takeProfit or stoploss
+	if stopLossPrice == "" && takeProfitPrice == "" {
 		//order data
 		orders := oanda.ClientOrders{
 			Orders: oanda.Orders{
-				TimeInForce:      "FOK",
-				Instrument:       instrument,
-				Units:            units,
-				Type:             "MARKET",
-				PositionFill:     "DEFAULT"},
+				TimeInForce:  "FOK",
+				Instrument:   instrument,
+				Units:        units,
+				Type:         "MARKET",
+				PositionFill: "DEFAULT"},
 		}
 
 		fmt.Println("test me - line 45, prepare_orders.go")
 
 		return orders
-
 
 	}
 
