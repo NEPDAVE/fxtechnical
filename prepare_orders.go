@@ -12,10 +12,10 @@ Collection of functions to create/submit Market and Limit orders to oanda
 */
 
 //this shit need to return an oanda.OrderCreateTransaction
-func CreateOrder(units string, instrument string, stoploss string, takeProfit string) {
+func CreateOrder(units string, instrument string, stopLoss string, takeProfit string) {
 	clientOrder := MarketOrder(units, instrument, stopLoss, takeProfit)
 
-	clientOrderByte := oanda.MarshalClientOrders(clientOrder)
+	clientOrderByte := oanda.ClientOrders{}.MarshalClientOrders(clientOrder)
 
 	respByte, err := oanda.CreateOrder(clientOrderByte)
 
