@@ -13,7 +13,19 @@ Collection of functions to create/submit Market and Limit orders to oanda
 
 //this shit need to return an oanda.OrderCreateTransaction
 func CreateOrder(units string, instrument string, stoploss string, takeProfit string) {
-	fmt.Println("creating a mofo order - log this shit for the ledger")
+	clientOrder := MarketOrder(units, instrument, stopLoss, takeProfit)
+
+	clientOrderByte := oanda.MarshalClientOrders(clientOrder)
+
+	respByte, err := oanda.CreateOrder(clientOrderByte)
+
+	if err != nil{
+		fmt.Println(err)
+	}
+
+	//FIXME this looks weird/bad
+	fmt.Println(string(respByte))
+	fmt.Println(err)
 }
 
 /*
@@ -30,6 +42,7 @@ func MarketOrder(stopLossPrice string, takeProfitPrice string,
 	stopLossOnFill := oanda.StopLossOnFill{
 		TimeInForce: "GTC", Price: stopLossPrice,
 	}
+
 
 	// //trailing stop loss data
 	// trailingStopLossOnFill := oanda.TrailingStopLossOnFill{}
