@@ -11,15 +11,58 @@ Collection of functions to create/submit Market and Limit orders to oanda
 ***************************
 */
 
+//CreateOrder creates an order and submits to the oanda API
+func CreateOrder(units string, instrument string) []byte {
+	clientOrder := MarketOrder(units, instrument)
+	fmt.Println(clientOrder)
+	clientOrderByte := oanda.SimpleClientOrders{}.MarshalSimpleClientOrders(clientOrder)
+
+	respByte, err := oanda.CreateOrder(clientOrderByte)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return respByte
+}
+
+/*
+***************************
+Collection of functions to prepare Market and Limit orders
+***************************
+*/
+
+//MarketOrder builds struct needed for marshaling data into a []byte
+func MarketOrder(units string, instrument string) oanda.SimpleClientOrders {
+
+	//order data
+	orders := oanda.SimpleClientOrders{
+		Orders: oanda.SimpleOrders{
+			TimeInForce:  "FOK",
+			Instrument:   instrument,
+			Units:        units,
+			Type:         "MARKET",
+			PositionFill: "DEFAULT"},
+	}
+
+	return orders
+}
+
+/*
+***************************
+Collection of functions to create/submit Market and Limit orders to oanda
+***************************
+*/
+
 //this shit need to return an oanda.OrderCreateTransaction
-func CreateOrder(units string, instrument string, stopLoss string, takeProfit string) {
-	clientOrder := MarketOrder(units, instrument, stopLoss, takeProfit)
+func CreateComplexOrder(units string, instrument string, stopLoss string, takeProfit string) {
+	clientOrder := ComplexMarketOrder(units, instrument, stopLoss, takeProfit)
 
 	clientOrderByte := oanda.ClientOrders{}.MarshalClientOrders(clientOrder)
 
 	respByte, err := oanda.CreateOrder(clientOrderByte)
 
-	if err != nil{
+	if err != nil {
 		fmt.Println(err)
 	}
 
@@ -35,14 +78,13 @@ Collection of functions to prepare Market and Limit orders
 */
 
 //MarketOrder builds struct needed for marshaling data into a []byte
-func MarketOrder(stopLossPrice string, takeProfitPrice string,
+func ComplexMarketOrder(stopLossPrice string, takeProfitPrice string,
 	instrument string, units string) oanda.ClientOrders {
 
 	//stop loss data
 	stopLossOnFill := oanda.StopLossOnFill{
 		TimeInForce: "GTC", Price: stopLossPrice,
 	}
-
 
 	// //trailing stop loss data
 	// trailingStopLossOnFill := oanda.TrailingStopLossOnFill{}
