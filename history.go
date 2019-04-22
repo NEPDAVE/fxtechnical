@@ -1,8 +1,8 @@
 package fxtechnical
 
 import (
-	oanda "github.com/nepdave/oanda"
 	"fmt"
+	oanda "github.com/nepdave/oanda"
 )
 
 //Candles returns a *oanda.Candles, used by CloseAverage
