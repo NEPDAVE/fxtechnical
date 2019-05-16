@@ -12,10 +12,10 @@ Collection of functions to create/submit Market and Limit orders to oanda
 */
 
 //CreateOrder creates an order and submits to the oanda API
-func CreateOrder(units string, instrument string) []byte {
-	clientOrder := MarketOrder(units, instrument)
+func CreateOrder(units string, instrument string, stopLoss string) []byte {
+	clientOrder := MarketOrder(units, instrument, stopLoss)
 	fmt.Println(clientOrder)
-	clientOrderByte := oanda.SimpleClientOrders{}.MarshalSimpleClientOrders(clientOrder)
+	clientOrderByte := oanda.ClientOrders{}.MarshalClientOrders(clientOrder)
 
 	respByte, err := oanda.CreateOrder(clientOrderByte)
 
@@ -33,11 +33,15 @@ Collection of functions to prepare Market and Limit orders
 */
 
 //MarketOrder builds struct needed for marshaling data into a []byte
-func MarketOrder(units string, instrument string) oanda.SimpleClientOrders {
+func MarketOrder(units string, instrument string, stopLoss string) oanda.ClientOrders {
 
 	//order data
-	orders := oanda.SimpleClientOrders{
-		Orders: oanda.SimpleOrders{
+	orders := oanda.ClientOrders{
+		Orders: oanda.Orders{
+			StopLossOnFill: oanda.StopLossOnFill{
+				TimeInForce: "GTC",
+				Price:       stopLoss,
+			},
 			TimeInForce:  "FOK",
 			Instrument:   instrument,
 			Units:        units,
