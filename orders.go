@@ -7,23 +7,28 @@ import (
 
 /*
 ***************************
-Collection of functions to create/submit Market and Limit orders to oanda
+Collection of functions to create and work Market and Limit orders to oanda
 ***************************
 */
 
-//CreateOrder creates an order and submits to the oanda API
-func CreateOrder(units string, instrument string, stopLoss string) []byte {
-	clientOrder := MarketOrder(units, instrument, stopLoss)
-	fmt.Println(clientOrder)
-	clientOrderByte := oanda.ClientOrders{}.MarshalClientOrders(clientOrder)
+//CreateOrder creates the order data structure, submits the order to Oanda,
+//and returns an OrderID
+func CreateOrder(units string, instrument string, stopLossPrice string,
+	takeProfitPrice string) oanda.OrderCreateTransaction {
+	//building market order struct
+	clientOrders := MarketOrder(units, instrument, stopLossPrice, takeProfitPrice)
 
-	respByte, err := oanda.CreateOrder(clientOrderByte)
+	//marshaling market order struct into byte slice
+	ordersByte := ClientOrders{}.MarshalClientOrders(clientOrders)
 
-	if err != nil {
-		fmt.Println(err)
-	}
+	//posting market order byte slice to oanda api
+	ordersResponseByte := oanda.Create(ordersByte)
 
-	return respByte
+	//unmarshaling order create transaction into struct
+	orderCreateTransaction := oanda.OrderCreateTransaction{}.
+		UnmarshalOrderCreateTransacion(ordersResponseByte)
+
+	return orderCreateTransaction
 }
 
 /*
@@ -33,65 +38,16 @@ Collection of functions to prepare Market and Limit orders
 */
 
 //MarketOrder builds struct needed for marshaling data into a []byte
-func MarketOrder(units string, instrument string, stopLoss string) oanda.ClientOrders {
-
-	//order data
-	orders := oanda.ClientOrders{
-		Orders: oanda.Orders{
-			StopLossOnFill: oanda.StopLossOnFill{
-				TimeInForce: "GTC",
-				Price:       stopLoss,
-			},
-			TimeInForce:  "FOK",
-			Instrument:   instrument,
-			Units:        units,
-			Type:         "MARKET",
-			PositionFill: "DEFAULT"},
-	}
-
-	return orders
-}
-
-/*
-***************************
-Collection of functions to create/submit Market and Limit orders to oanda
-***************************
-*/
-
-//this shit need to return an oanda.OrderCreateTransaction
-func CreateComplexOrder(units string, instrument string, stopLoss string, takeProfit string) {
-	clientOrder := ComplexMarketOrder(units, instrument, stopLoss, takeProfit)
-
-	clientOrderByte := oanda.ClientOrders{}.MarshalClientOrders(clientOrder)
-
-	respByte, err := oanda.CreateOrder(clientOrderByte)
-
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	//FIXME this looks weird/bad
-	fmt.Println(string(respByte))
-	fmt.Println(err)
-}
-
-/*
-***************************
-Collection of functions to prepare Market and Limit orders
-***************************
-*/
-
-//MarketOrder builds struct needed for marshaling data into a []byte
-func ComplexMarketOrder(stopLossPrice string, takeProfitPrice string,
-	instrument string, units string) oanda.ClientOrders {
+func MarketOrder(units string, instrument string, stopLossPrice string,
+	takeProfitPrice string) oanda.ClientOrders {
 
 	//stop loss data
 	stopLossOnFill := oanda.StopLossOnFill{
 		TimeInForce: "GTC", Price: stopLossPrice,
 	}
 
-	// //trailing stop loss data
-	// trailingStopLossOnFill := oanda.TrailingStopLossOnFill{}
+	//FIXME need to figure out how to create trailing stop loss
+	//trailingStopLossOnFill := oanda.TrailingStopLossOnFill{}
 
 	//take profit data
 	takeProfitOnFill := oanda.TakeProfitOnFill{
