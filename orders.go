@@ -3,43 +3,58 @@ package fxtechnical
 import (
 	"fmt"
 	oanda "github.com/nepdave/oanda"
+	"log"
 )
+
+var (
+	logger *log.Logger
+)
+
+func FxTechInit(logger *log.Logger) {
+	logger = logger
+}
 
 /*
 ***************************
-Collection of functions to create and work Market and Limit orders to oanda
+Collection of functions to create orders with oanda
 ***************************
 */
 
 //CreateOrder creates the order data structure, submits the order to Oanda,
 //and returns an OrderID
-func CreateOrder(units string, instrument string, stopLossPrice string,
-	takeProfitPrice string) oanda.OrderCreateTransaction {
+func CreateOrder(units string, instrument string, stopLoss string, takeProfit string) (*oanda.OrderCreateTransactionResponse, error) {
+
+
 	//building market order struct
-	clientOrders := MarketOrder(units, instrument, stopLossPrice, takeProfitPrice)
+	orders := MarketOrder(units, instrument, stopLoss, takeProfit)
 
 	//marshaling market order struct into byte slice
-	ordersByte := ClientOrders{}.MarshalClientOrders(clientOrders)
+	ordersByte := oanda.OrdersRequest{}.MarshalOrdersRequest(orders)
 
 	//posting market order byte slice to oanda api
-	ordersResponseByte := oanda.Create(ordersByte)
+	response, err := oanda.CreateOrder(ordersByte)
+
+	if err != nil {
+		logger.Println(err)
+		return &oanda.OrderCreateTransactionResponse{}, err
+	}
 
 	//unmarshaling order create transaction into struct
-	orderCreateTransaction := oanda.OrderCreateTransaction{}.
-		UnmarshalOrderCreateTransacion(ordersResponseByte)
+	transaction, err := oanda.OrderCreateTransactionResponse{}.
+		UnmarshalOrderCreateTransactionResponse(response)
 
-	return orderCreateTransaction
+	return transaction, err
 }
 
 /*
 ***************************
-Collection of functions to prepare Market and Limit orders
+Collection of functions to prepare orders
 ***************************
 */
 
 //MarketOrder builds struct needed for marshaling data into a []byte
 func MarketOrder(units string, instrument string, stopLossPrice string,
-	takeProfitPrice string) oanda.ClientOrders {
+	takeProfitPrice string) oanda.OrdersRequest {
 
 	//stop loss data
 	stopLossOnFill := oanda.StopLossOnFill{
@@ -57,7 +72,7 @@ func MarketOrder(units string, instrument string, stopLossPrice string,
 	//submiting order with no takeProfit or stoploss
 	if stopLossPrice == "" && takeProfitPrice == "" {
 		//order data
-		orders := oanda.ClientOrders{
+		orders := oanda.OrdersRequest{
 			Orders: oanda.Orders{
 				TimeInForce:  "FOK",
 				Instrument:   instrument,
@@ -73,7 +88,7 @@ func MarketOrder(units string, instrument string, stopLossPrice string,
 	}
 
 	//order data
-	orders := oanda.ClientOrders{
+	orders := oanda.OrdersRequest{
 		Orders: oanda.Orders{
 			StopLossOnFill:   stopLossOnFill,
 			TakeProfitOnFill: takeProfitOnFill,
@@ -90,7 +105,7 @@ func MarketOrder(units string, instrument string, stopLossPrice string,
 //LimitLongOrder builds struct needed for marshaling data into a []byte
 //FIXME SL/TP is hard coded. need to do more research here
 func LimitLongOrder(targetPrice float64, instrument string,
-	units string) oanda.ClientOrders {
+	units string) oanda.OrdersRequest {
 	//tp/sl ratio is 3 to 1
 	stopLossPrice := fmt.Sprintf("%.5f", (targetPrice - .002))
 	stopLossOnFill := oanda.StopLossOnFill{TimeInForce: "GTC", Price: stopLossPrice}
@@ -100,7 +115,7 @@ func LimitLongOrder(targetPrice float64, instrument string,
 
 	stringTargetPrice := fmt.Sprintf("%.5f", targetPrice)
 
-	orders := oanda.ClientOrders{
+	orders := oanda.OrdersRequest{
 		Orders: oanda.Orders{
 			Price:            stringTargetPrice,
 			StopLossOnFill:   stopLossOnFill,
@@ -117,7 +132,7 @@ func LimitLongOrder(targetPrice float64, instrument string,
 //LimitShortOrder builds struct needed for marshaling data into a []byte
 //FIXME SL/TP is hard coded. need to do more research here
 func LimitShortOrder(targetPrice float64, instrument string,
-	units string) oanda.ClientOrders {
+	units string) oanda.OrdersRequest {
 	//tp/sl ratio is 3 to 1
 	stopLossPrice := fmt.Sprintf("%.5f", (targetPrice + .002))
 	stopLossOnFill := oanda.StopLossOnFill{TimeInForce: "GTC", Price: stopLossPrice}
@@ -127,7 +142,7 @@ func LimitShortOrder(targetPrice float64, instrument string,
 
 	stringTargetPrice := fmt.Sprintf("%.5f", targetPrice)
 
-	orders := oanda.ClientOrders{
+	orders := oanda.OrdersRequest{
 		Orders: oanda.Orders{
 			Price:            stringTargetPrice,
 			StopLossOnFill:   stopLossOnFill,
@@ -148,8 +163,8 @@ Trailing Stop Loss Order
 */
 
 //TrailingStopLossOrder builds struct needed for marshaling data into a []byte
-func TrailingStopLossOrder(tradeID string, distance string) oanda.ClientOrders {
-	orders := oanda.ClientOrders{
+func TrailingStopLossOrder(tradeID string, distance string) oanda.OrdersRequest {
+	orders := oanda.OrdersRequest{
 		Orders: oanda.Orders{
 			Type:             "TRAILING_STOP_LOSS",
 			TradeID:          tradeID,
@@ -160,23 +175,3 @@ func TrailingStopLossOrder(tradeID string, distance string) oanda.ClientOrders {
 
 	return orders
 }
-
-/*
-{
-  "order": {
-    "price": "1.5000",
-    "stopLossOnFill": {
-      "timeInForce": "GTC",
-      "price": "1.7000"
-    },
-    "takeProfitOnFill": {
-      "price": "1.14530"
-    },
-    "timeInForce": "GTC",
-    "instrument": "USD_CAD",
-    "units": "-1000",
-    "type": "LIMIT",
-    "positionFill": "DEFAULT"
-  }
-	{{1.30100 {GTC 1.30300} {GTC 1.29500} GTC GBP_USD  LIMIT DEFAULT}}
-*/
