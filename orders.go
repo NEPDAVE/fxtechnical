@@ -28,11 +28,18 @@ func CreateOrder(units string, instrument string, stopLoss string, takeProfit st
 	//building market order struct
 	orders := MarketOrder(units, instrument, stopLoss, takeProfit)
 
+	fmt.Println("order")
+	fmt.Println(orders)
+
 	//marshaling market order struct into byte slice
 	ordersByte := oanda.OrdersRequest{}.MarshalOrdersRequest(orders)
 
+	fmt.Println(string(ordersByte))
+
 	//posting market order byte slice to oanda api
 	response, err := oanda.CreateOrder(ordersByte)
+
+	fmt.Println(string(response))
 
 	if err != nil {
 		logger.Println(err)
@@ -52,6 +59,9 @@ Collection of functions to prepare orders
 ***************************
 */
 
+//SimpleMarketOrder
+
+
 //MarketOrder builds struct needed for marshaling data into a []byte
 func MarketOrder(units string, instrument string, stopLossPrice string,
 	takeProfitPrice string) oanda.OrdersRequest {
@@ -70,10 +80,11 @@ func MarketOrder(units string, instrument string, stopLossPrice string,
 	}
 
 	//submiting order with no takeProfit or stoploss
-	if stopLossPrice == "" && takeProfitPrice == "" {
+	if stopLossPrice == "" {
 		//order data
-		orders := oanda.OrdersRequest{
+		orders := oanda.SimpleOrdersRequest{
 			Orders: oanda.Orders{
+				TakeProfitOnFill: takeProfitOnFill,
 				TimeInForce:  "FOK",
 				Instrument:   instrument,
 				Units:        units,
@@ -81,8 +92,7 @@ func MarketOrder(units string, instrument string, stopLossPrice string,
 				PositionFill: "DEFAULT"},
 		}
 
-		fmt.Println("test me - line 45, prepare_orders.go")
-
+		fmt.Println("test me - order with no stop loss")
 		return orders
 
 	}
