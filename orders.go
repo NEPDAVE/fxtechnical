@@ -3,16 +3,7 @@ package fxtechnical
 import (
 	"fmt"
 	oanda "github.com/nepdave/oanda"
-	"log"
 )
-
-var (
-	logger *log.Logger
-)
-
-func FxTechInit(logger *log.Logger) {
-	logger = logger
-}
 
 /*
 ***************************
