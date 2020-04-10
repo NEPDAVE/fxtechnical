@@ -68,7 +68,9 @@ func AverageTrueRange(iH *oanda.InstrumentHistory) (float64, error) {
 	n := len(iH.Candles)
 	trueRangeSum := 0.0
 
-	for i := n - 1; i >= 1; i-- {
+	for i := n - 2; i >= 1; i-- {
+		fmt.Printf("i: %v\n", i)
+		fmt.Printf("TIME: %v\n", iH.Candles[i].Time)
 		trueRange, err := TrueRange(iH.Candles[i].Mid, iH.Candles[i-1].Mid)
 		if err != nil {
 			return 0, err
