@@ -8,10 +8,10 @@ import (
 )
 
 //CloseAverage returns the average and all of the values used to calculate the average
-func CloseAverage(i *oanda.InstrumentHistory) (float64, error) {
+func CloseAverage(insHist *oanda.InstrumentHistory) (float64, error) {
 	var sum float64 = 0.0
 
-	for _, v := range i.Candles {
+	for _, v := range insHist.Candles {
 		f, err := strconv.ParseFloat(v.Mid.C, 64)
 		if err != nil {
 			return 0, err
@@ -20,7 +20,7 @@ func CloseAverage(i *oanda.InstrumentHistory) (float64, error) {
 		fmt.Println(f)
 	}
 
-	average := sum / float64(len(i.Candles))
+	average := sum / float64(len(insHist.Candles))
 
 	return average, nil
 }
@@ -57,20 +57,17 @@ func TrueRange(midCurrent oanda.Mid, midPrevious oanda.Mid) (float64, error) {
 			trueRange = v
 		}
 	}
-	fmt.Printf("TRUE RANGE: %f\n", trueRange)
+
 	return trueRange, nil
 }
 
-//sigma notation in golang format
-//ATR=(1/n)*(i=1 N over SIGMA for TR)
+//ATR=(1/n)*(i=1 N over SIGMA for TR) or ATR=(1/n) (n)(i=1)∑TR i
 func AverageTrueRange(iH *oanda.InstrumentHistory) (float64, error) {
 
 	n := len(iH.Candles)
 	trueRangeSum := 0.0
 
-	for i := n - 2; i >= 1; i-- {
-		fmt.Printf("i: %v\n", i)
-		fmt.Printf("TIME: %v\n", iH.Candles[i].Time)
+	for i := len(iH.Candles) - 2; i >= 1; i-- {
 		trueRange, err := TrueRange(iH.Candles[i].Mid, iH.Candles[i-1].Mid)
 		if err != nil {
 			return 0, err
@@ -78,20 +75,11 @@ func AverageTrueRange(iH *oanda.InstrumentHistory) (float64, error) {
 		trueRangeSum = trueRangeSum + trueRange
 	}
 
-	averageTrueRange := (1.0 / float64(n)) * trueRangeSum
+	atrString := fmt.Sprintf("%.4f", (1.0/float64(n))*trueRangeSum)
+	averageTrueRange, err := strconv.ParseFloat(atrString, 64)
+	if err != nil {
+		return 0, err
+	}
 
 	return averageTrueRange, nil
 }
-
-/*
-Where
-TR= A particular true range
-n = the time period - IE 14 days
-
-TR=Max[(H − L),Abs(H − CP),Abs(L − CP)]
-
-ATR=(1/n)*(i=1 N over SIGMA for TR)
-
-ATR=(1/n) (n)(i=1)∑TR i
-​
-*/
