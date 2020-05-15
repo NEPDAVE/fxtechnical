@@ -7,9 +7,68 @@ import (
 	"strconv"
 )
 
+//Quote represents an Oanda Bid or Ask with the Price converted from
+//a string to a float64
+type Quote struct {
+	Liquidity int     `json:"liquidity"`
+	Price     float64 `json:"price"`
+}
+
+//MostLiquidAsk returns the most liquid Ask Quote out of all the Quotes
+func MostLiquidAsk(asks []oanda.Asks) (*Quote, error) {
+	liquidity := 0
+	priceStr := ""
+
+	for _, ask := range asks {
+		if ask.Liquidity > liquidity {
+			liquidity = ask.Liquidity
+			priceStr = ask.Price
+		}
+	}
+
+	price, err := strconv.ParseFloat(priceStr, 64)
+
+	if err != nil {
+		return nil, err
+	}
+
+	quote := &Quote{
+		Liquidity: liquidity,
+		Price:     price,
+	}
+
+	return quote, nil
+}
+
+//MostLiquidAsk returns the most liquid Ask Quote out of all the Quotes
+func MostLiquidAsk(asks []oanda.Asks) (*Quote, error) {
+	liquidity := 0
+	priceStr := ""
+
+	for _, ask := range asks {
+		if ask.Liquidity > liquidity {
+			liquidity = ask.Liquidity
+			priceStr = ask.Price
+		}
+	}
+
+	price, err := strconv.ParseFloat(priceStr, 64)
+
+	if err != nil {
+		return nil, err
+	}
+
+	quote := &Quote{
+		Liquidity: liquidity,
+		Price:     price,
+	}
+
+	return quote, nil
+}
+
 //CloseAverage returns the average and all of the values used to calculate the average
 func CloseAverage(insHist *oanda.InstrumentHistory) (float64, error) {
-	var sum float64 = 0.0
+	sum := 0.0
 
 	for _, v := range insHist.Candles {
 		f, err := strconv.ParseFloat(v.Mid.C, 64)
