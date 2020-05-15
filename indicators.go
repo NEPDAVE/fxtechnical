@@ -40,15 +40,15 @@ func MostLiquidAsk(asks []oanda.Asks) (*Quote, error) {
 	return quote, nil
 }
 
-//MostLiquidAsk returns the most liquid Ask Quote out of all the Quotes
-func MostLiquidAsk(asks []oanda.Asks) (*Quote, error) {
+//MostLiquidBid returns the most liquid Bid Quote out of all the Quotes
+func MostLiquidBid(bids []oanda.Bids) (*Quote, error) {
 	liquidity := 0
 	priceStr := ""
 
-	for _, ask := range asks {
-		if ask.Liquidity > liquidity {
-			liquidity = ask.Liquidity
-			priceStr = ask.Price
+	for _, bid := range bids {
+		if bid.Liquidity > liquidity {
+			liquidity = bid.Liquidity
+			priceStr = bid.Price
 		}
 	}
 
