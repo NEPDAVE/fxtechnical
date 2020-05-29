@@ -66,20 +66,33 @@ func MostLiquidBid(bids []oanda.Bids) (*Quote, error) {
 	return quote, nil
 }
 
-//CloseAverage returns the average and all of the values used to calculate the average
+//CloseAverage returns the average and close of an array of candles
 func CloseAverage(insHist *oanda.InstrumentHistory) (float64, error) {
 	sum := 0.0
 
-	for _, v := range insHist.Candles {
-		f, err := strconv.ParseFloat(v.Mid.C, 64)
+	for _, c := range insHist.Candles {
+		f, err := strconv.ParseFloat(c.Mid.C, 64)
 		if err != nil {
 			return 0, err
 		}
 		sum = sum + f
-		fmt.Println(f)
 	}
 
 	average := sum / float64(len(insHist.Candles))
+
+	return average, nil
+}
+
+//VolumeAverage returns the volume average of an array of candles
+func VolumeAverage(insHist *oanda.InstrumentHistory) (float64, error) {
+	sum := 0
+
+	for _, c := range insHist.Candles {
+		volume := c.Volume
+		sum = sum + volume
+	}
+
+	average := float64(sum) / float64(len(insHist.Candles))
 
 	return average, nil
 }
@@ -121,13 +134,13 @@ func TrueRange(midCurrent oanda.Mid, midPrevious oanda.Mid) (float64, error) {
 }
 
 //ATR=(1/n)*(i=1 N over SIGMA for TR) or ATR=(1/n) (n)(i=1)∑TR i
-func AverageTrueRange(iH *oanda.InstrumentHistory) (float64, error) {
+func AverageTrueRange(insHist *oanda.InstrumentHistory) (float64, error) {
 
-	n := len(iH.Candles)
+	n := len(insHist.Candles)
 	trueRangeSum := 0.0
 
-	for i := len(iH.Candles) - 2; i >= 1; i-- {
-		trueRange, err := TrueRange(iH.Candles[i].Mid, iH.Candles[i-1].Mid)
+	for i := len(insHist.Candles) - 2; i >= 1; i-- {
+		trueRange, err := TrueRange(insHist.Candles[i].Mid, insHist.Candles[i-1].Mid)
 		if err != nil {
 			return 0, err
 		}
