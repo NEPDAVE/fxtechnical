@@ -28,5 +28,9 @@ func CalculateRiskCapitol(marginPercent float64) (string, error) {
 	//of the margin available
 	riskCapitolFloat := marginAvailable * marginPercent
 
+	//multiplying the risk capitol by 20 to account for leverage
+	//currently using 20:1 leverage
+	riskCapitolFloat = riskCapitolFloat * 20
+
 	return fmt.Sprintf("%d", int(riskCapitolFloat)), nil
 }
