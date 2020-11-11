@@ -14,6 +14,48 @@ type Quote struct {
 	Price     float64 `json:"price"`
 }
 
+//LowestAsk returns the Lowest Ask Quote in the list of Ask Quotes
+func LowestAsk(asks []oanda.Asks) (*Quote, error) {
+	quote := &Quote{}
+
+	for i, ask := range asks {
+		price, err := strconv.ParseFloat(ask.Price, 64)
+
+		if err != nil {
+			return nil, err
+		}
+
+		//setting the initial Quote values to the first value in the list
+		//this prevents checking if the price is less than zero
+		if i == 0 || price < quote.Price {
+			quote.Liquidity = ask.Liquidity
+			quote.Price = price
+		}
+	}
+
+	return quote, nil
+}
+
+//HighestBid returns the Highest Bid Quote out of all the Bid Quotes
+func HighestBid(bids []oanda.Bids) (*Quote, error) {
+	quote := &Quote{}
+
+	for _, bid := range bids {
+		price, err := strconv.ParseFloat(bid.Price, 64)
+
+		if err != nil {
+			return nil, err
+		}
+
+		if price > quote.Price {
+			quote.Liquidity = bid.Liquidity
+			quote.Price = price
+		}
+	}
+
+	return quote, nil
+}
+
 //MostLiquidAsk returns the most liquid Ask Quote out of all the Quotes
 func MostLiquidAsk(asks []oanda.Asks) (*Quote, error) {
 	liquidity := 0
