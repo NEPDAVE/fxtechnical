@@ -2,7 +2,7 @@ package fxtechnical
 
 import (
 	"fmt"
-	oanda "github.com/nepdave/oanda"
+	"github.com/nepdave/oanda/account"
 	"github.com/nepdave/xe"
 	"strconv"
 	"strings"
@@ -12,7 +12,7 @@ import (
 //on a trade and converts the percentage to a number of units to risk
 func CalculateRiskCapitol(marginToRisk float64) (string, error) {
 	//get account summary
-	accountSummary, err := oanda.GetAccountSummary()
+	accountSummary, err := account.GetSummary()
 
 	if err != nil {
 		fmt.Println(err)
@@ -41,7 +41,7 @@ func CalculateRiskCapitol(marginToRisk float64) (string, error) {
 //on a trade and converts the percentage to a number of units to risk
 func UnitsToRisk(marginToRisk float64, marginRatio float64, instrument string) (string, error) {
 	//get account summary
-	accountSummary, err := oanda.GetAccountSummary()
+	accountSummary, err := account.GetSummary()
 
 	if err != nil {
 		fmt.Println(err)
